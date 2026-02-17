@@ -26,6 +26,7 @@
     <div class="home-screen active" id="homeScreen">
       <div class="app-grid">
 
+        <!-- Row 1: main feeds -->
         <div class="app-icon" data-app="myhero">
           <div class="app-icon-graphic" style="background: var(--accent-yellow);">&#9889;</div>
           <span class="app-icon-label">myHERO</span>
@@ -36,19 +37,20 @@
           <span class="app-icon-label">Bliink</span>
         </div>
 
-        <div class="app-icon" data-app="streetview">
-          <div class="app-icon-graphic" style="background: var(--accent-red);">&#128373;</div>
-          <span class="app-icon-label">Streetview</span>
+        <div class="app-icon" data-app="todaystidbit">
+          <div class="app-icon-graphic" style="background: #2c2218;">&#128240;</div>
+          <span class="app-icon-label">The Times</span>
         </div>
 
+        <!-- Row 2: news/comms -->
         <div class="app-icon" data-app="dailydollar">
           <div class="app-icon-graphic" style="background: var(--accent-green);">&#36;</div>
           <span class="app-icon-label">Daily Dollar</span>
         </div>
 
-        <div class="app-icon" data-app="todaystidbit">
-          <div class="app-icon-graphic" style="background: #2c2218;">&#128240;</div>
-          <span class="app-icon-label">Tidbit</span>
+        <div class="app-icon" data-app="streetview">
+          <div class="app-icon-graphic" style="background: var(--accent-red);">&#128373;</div>
+          <span class="app-icon-label">Streetview</span>
         </div>
 
         <div class="app-icon" data-app="messages">
@@ -56,6 +58,7 @@
           <span class="app-icon-label">Messages</span>
         </div>
 
+        <!-- Row 3: personal -->
         <div class="app-icon" data-app="profile">
           <div class="app-icon-graphic" style="background: #888;">&#9881;</div>
           <span class="app-icon-label">Profile</span>
@@ -163,12 +166,12 @@
     <div class="app-view" id="app-todaystidbit">
       <div class="app-titlebar app-titlebar-tidbit">
         <button class="app-home-btn" data-home>&larr; Home</button>
-        <span class="app-titlebar-name">Today's Tidbit</span>
+        <span class="app-titlebar-name">The Times Today</span>
       </div>
       <div class="app-body app-body-tidbit">
         <!-- Masthead — permanent banner at top of the paper -->
         <div class="tt-masthead">
-          <div class="tt-masthead-name">Today's Tidbit</div>
+          <div class="tt-masthead-name">The Times Today</div>
           <div class="tt-masthead-tagline">Your neighborhood's paper of record</div>
         </div>
         <div id="feed-todaystidbit">

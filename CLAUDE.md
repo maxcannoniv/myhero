@@ -90,7 +90,7 @@ Hero, Celebrity, Politician, Sleuth, Tycoon, Visionary, Mogul, Mercenary, Champi
 - **Bliink** — Social media feed (like Instagram)
 - **Streetview** — Bloodhound's investigator blog (DM-written)
 - **Daily Dollar** — Financial/news feed, WSJ-inspired (DM-written)
-- **Today's Tidbit** — Local community newspaper, broadsheet style. For city-wide updates all players should see. Feed key in Sheets: `todaystidbit`
+- **The Times Today** — Local community newspaper, broadsheet style. For city-wide updates all players should see. Feed key in Sheets: `todaystidbit`. Icon label: "The Times"
 - **Messages** — Private comms between characters
 - **Profile** — Hero stats, inventory, bank
 
@@ -165,7 +165,7 @@ Players don't know which characters are NPCs and which are real players. All cha
 - Class starting defaults (bank, followers, authority) applied at signup
 - Factions and NPC characters created in Sheets
 - Character profile photos — asset system with `assets/characters/{slug}/profile.png`, shown in popup; falls back to first initial. Bloodhound, Mongrel, Dozer have photos.
-- Today's Tidbit feed — local newspaper style (broadsheet). Feed key: `todaystidbit`
+- The Times Today feed — local newspaper style (broadsheet). Feed key: `todaystidbit`
 - Backend fully on Netlify Functions (auto-deploys with git push)
 - Live at https://myherogame.netlify.app
 
