@@ -8,28 +8,29 @@ An asynchronous multiplayer social-strategy RPG played through a web dashboard. 
 
 - **Frontend:** Vanilla HTML/CSS/JS (no frameworks). Comic book visual theme (Bangers font, bold colors, panel borders).
 - **Database:** Google Sheets (spreadsheet ID: `1Vuz-tDEt5pC2qsw40WDjt5tbvVBsNYaBjHSMp-F9NYc`)
-- **Player API:** Google Apps Script deployed as web app. Players' browsers talk to this for login, signup, and data fetching.
-- **Admin/Dev Access:** Google Service Account (`credentials.json` in project root). Claude uses this to write directly to Sheets. Never commit this file.
-- **Hosting:** Netlify (not yet deployed)
+- **Backend:** Netlify Functions (serverless). Single function at `netlify/functions/api.js` handles all API requests. Auto-deploys with git push.
+- **Admin/Dev Access:** Google Service Account. Credentials stored as `GOOGLE_CREDENTIALS` environment variable on Netlify. Local `credentials.json` in project root (in .gitignore, never commit).
+- **Hosting:** Netlify — live at https://myherogame.netlify.app, auto-deploys from GitHub (github.com/maxcannoniv/myhero)
+- **Legacy:** Google Apps Script was the original backend but has been fully replaced by Netlify Functions. `google-apps-script-clean.js` is kept in repo for reference but is no longer active.
 
 ## Key Files
 
-- `index.html` — Landing page (in-universe "city broadcast")
-- `classes.html` — Class/archetype showcase page
+- `index.html` — Landing page (in-universe "Emergency Alert" from the Mayor)
+- `classes.html` — Class/archetype showcase ("Roles We Need Most")
 - `login.html` — Login + signup with skill point allocation
-- `dashboard.html` — Player terminal (phone-style app launcher)
-- `css/style.css` — All styling (comic book theme)
+- `dashboard.html` — Player terminal (phone-style app launcher with 8 apps)
+- `css/style.css` — All styling (comic book theme, per-feed styles, messages, character popups)
 - `js/auth.js` — Login, signup, password hashing, session management, class skill data
-- `js/sheets.js` — All communication with Google Apps Script
-- `js/dashboard.js` — Terminal navigation, app switching, hero profile display
-- `google-apps-script-clean.js` — The code deployed in Google Apps Script (must be manually copy-pasted and redeployed when changed)
-- `setup-sheet.js` — Node script to write data to Google Sheets via service account
+- `js/sheets.js` — API communication layer (calls Netlify Functions)
+- `js/dashboard.js` — Terminal navigation, feed rendering (4 distinct styles), Bliink posting, messaging (inbox/threads/contacts), character profile popups, clickable names
+- `netlify/functions/api.js` — **The backend**. Handles all API actions: login, register, getHeroData, getFeed, createPost, getInbox, getThread, sendMessage, getContacts, addContact, getCharacter
+- `netlify.toml` — Netlify config (publish dir, functions dir, esbuild bundler)
+- `google-apps-script-clean.js` — Legacy Apps Script code (no longer active, kept for reference)
+- `setup-sheet.js` — Node script to set up Players tab
+- `setup-new-tabs.js` — Creates Characters and Factions tabs with initial NPC/faction data
+- `setup-feeds.js` — Creates Feeds tab with sample posts
+- `setup-messages.js` — Creates Messages and Contacts tabs
 - `credentials.json` — Service account key (in .gitignore, never commit)
-
-## Apps Script Deployment
-
-- URL: `https://script.google.com/macros/s/AKfycbwIHb0Dq88d-jy22mvK1mPCEByxwgsVbJRJ0rKQdC_f-VYBpicCVyiwTv5XZ_tWRs0I/exec`
-- Every time `google-apps-script-clean.js` changes, Max must manually update the code in the Apps Script editor and deploy a new version (Deploy > Manage deployments > edit > New version > Deploy)
 
 ## Game Design
 
@@ -109,20 +110,30 @@ Players don't know which characters are NPCs and which are real players. All cha
 **Tab: Factions** — Columns: faction_name, description, power_multiplier, leader
 **Tab: Inventory** — Per-player items and notes. Columns: username, item_name, type (item/note), content_id (for notes), description
 **Tab: NoteContent** — Secret content for notes. Columns: content_id, title, body_text, image_url. Only loaded when a player with the note clicks it.
-**Tab: Feeds** — Empty, for future use
+**Tab: Feeds** — All feed posts (all 4 feeds in one tab). Columns: feed, posted_by, posted_by_type (character/faction/anonymous), title, image_url, body, timestamp, visible (yes/no)
+**Tab: Messages** — All messages. Columns: from_character, to_character, body, timestamp, read (yes/no)
+**Tab: Contacts** — Player contact lists. Columns: hero_name, contact_name
 **Tab: Missions** — Empty, for future use
-**Tab: Messages** — Empty, for future use
 
-## Current State
+## Current State (as of 2026-02-17)
 
-Phase 1 (Foundation) is mostly built. Dashboard redesigned as phone-style terminal with app icons. Still needs:
-- End-to-end testing of the full flow
-- Netlify deployment
-- Class starting defaults for bank/followers
-- Authority scale definition
-- Factions tab in Sheets
-- Characters tab in Sheets (player + NPC)
-- Admin dashboard for DM (manage NPCs, factions, content)
-- Build out all feed apps
+**What's built and working:**
+- Full login/signup flow with class selection and skill allocation
+- Phone-style terminal dashboard with 8 app icons
+- 4 live feeds with distinct visual styles: Streetview (noir), Daily Dollar (WSJ), myHERO (job board), Bliink (Instagram)
+- Bliink posting with preset image picker + captions
+- Messaging system: inbox, 1-on-1 threads, contacts, send/receive messages
+- Character profile popups from clickable names in feeds
+- Contact discovery (zero starting contacts, discover through feeds)
+- Profile page with 4 aggregate scores + 6 base skills
+- Class starting defaults (bank, followers, authority) applied at signup
+- Factions and NPC characters created in Sheets
+- Backend fully on Netlify Functions (auto-deploys with git push)
+- Live at https://myherogame.netlify.app
 
-See ROADMAP.md for full build plan and what's been discussed but not yet built.
+**What's NOT built yet (next steps toward MVP):**
+1. **Feed content** — Only sample/test posts exist. DM needs to write real Streetview articles, Daily Dollar news, myHERO job listings, and NPC Bliink posts
+2. **Missions** — The choose-your-own-adventure branching system (core gameplay). Data structure, UI, branching logic, answer recording
+3. **Admin dashboard** — DM tools to manage content, review posts, update stats, run the game without editing Sheets directly
+
+See ROADMAP.md for full build plan.

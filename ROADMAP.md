@@ -6,7 +6,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - **Players:** ~10 friends
 - **DM:** You — you review actions, write content, update stats manually
 - **Tech:** HTML/CSS/JS site hosted on Netlify, Google Sheets as the database
-- **Connections:** Apps Script (player-facing API) + Service Account (admin/dev tool)
+- **Backend:** Netlify Functions (serverless, auto-deploys with git push) + Service Account for Sheets access
 - **Login:** Simple username/password (passwords hashed via SHA-256)
 - **Visual Style:** Comic book — bold colors, Bangers font, panel borders, halftone effects
 
@@ -14,15 +14,15 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 
 ## Current Status
 
-### Phase 1: Foundation — IN PROGRESS
+### Phase 1: Foundation — COMPLETE
 - [x] **1.1 Project structure** — Folders, files, basic HTML/CSS/JS layout
-- [x] **1.2 Google Sheets setup** — Players tab with headers, Feeds/Missions/Messages tabs created
-- [x] **1.3 Google connections** — Apps Script deployed (player API) + Service Account (admin writes)
+- [x] **1.2 Google Sheets setup** — Players, Characters, Factions, Feeds, Messages, Contacts tabs
+- [x] **1.3 Backend** — Netlify Functions (replaced Apps Script). Auto-deploys with git push.
 - [x] **1.4 Login system** — Username/password with hashed passwords, login form
 - [x] **1.5 Signup system** — Account creation with hero name, class selection, skill point allocation
-- [x] **1.6 Dashboard shell** — Phone-style terminal with app icon grid, status bar, profile with aggregates + skills
-- [x] **1.7 Landing page** — In-universe "city broadcast" intro page
-- [x] **1.8 Classes page** — 10 archetypes with flavor text and skill tags
+- [x] **1.6 Dashboard shell** — Phone-style terminal with 8 app icons, status bar, profile with aggregates + skills
+- [x] **1.7 Landing page** — In-universe "Emergency Alert" from the Mayor
+- [x] **1.8 Classes page** — 10 archetypes framed as "Roles We Need Most"
 - [ ] **1.9 Test full flow end-to-end** — Landing → Classes → Signup → Dashboard → Logout → Login
 - [x] **1.10 Deploy to Netlify** — Live at https://myherogame.netlify.app, auto-deploys from GitHub
 
@@ -30,16 +30,16 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 
 ## Build Order
 
-### Phase 2: Game Data Foundation
+### Phase 2: Game Data Foundation — MOSTLY COMPLETE
 > Set up the data structures that everything else depends on.
 
 - [x] **2.1 Class starting defaults** — Bank: $3k base + $1k/commerce over 3. Followers: class-based (100-1000). Authority: letter tier per class.
 - [x] **2.2 Authority scale** — F (nobody) → E (low recognition) → D (minor position) → C (notable) → B (powerful) → A (elite) → S (CEO/gov) → SS (president)
-- [ ] **2.3 Factions tab in Sheets** — Create Factions tab with columns: faction_name, description, power_multiplier, etc.
-- [ ] **2.4 Characters tab in Sheets** — Create Characters tab for ALL characters (player + NPC). Columns: character_name, type (player/npc), class, skills, aggregates, faction, bio, etc.
+- [x] **2.3 Factions tab in Sheets** — 5 factions created (Streetview, Mongrel's Towing, myHERO, Wednesday Wealth, Cornerstone Holdings)
+- [x] **2.4 Characters tab in Sheets** — NPCs created (Bloodhound, Mongrel, Dozer, Head Honcho). Players added at signup.
 - [ ] **2.5 Clout calculation** — Define formula: faction standing × faction power multiplier, summed across factions
-- [ ] **2.6 Update signup flow** — New accounts get starting bank/followers/authority based on class defaults
-- [x] **2.7 Rename net_worth → bank** — Update Sheets column, Apps Script, and all JS references
+- [x] **2.6 Update signup flow** — New accounts get starting bank/followers/authority based on class defaults
+- [x] **2.7 Rename net_worth → bank** — Updated across all files
 - [ ] **2.8 Inventory system** — Inventory tab in Sheets, items + notes, display in Inventory app on terminal
 - [ ] **2.9 Notebook system** — NoteContent tab in Sheets, secret content loaded by content_id, popup overlay display
 - [ ] **2.10 Save-as-note from messages** — Players can save NPC messages as notes to their notebook
@@ -56,58 +56,59 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [ ] **3.7 Mission management** — Create and edit missions from admin dashboard
 - [ ] **3.8 Stat updates** — Manually adjust any player's skills, bank, followers, authority from admin
 
-### Phase 3.5: Migrate Backend to Netlify Functions
+### Phase 3.5: Migrate Backend to Netlify Functions — COMPLETE
 > Eliminate manual Apps Script redeployment. Code auto-deploys with git push.
 
-- [ ] **3.5.1 Set up Netlify Functions** — Create serverless functions that replace Apps Script endpoints
-- [ ] **3.5.2 Migrate login/signup/getHeroData** — Move player auth to Netlify Functions using service account
-- [ ] **3.5.3 Migrate getFeed** — Move feed fetching to Netlify Functions
-- [ ] **3.5.4 Update sheets.js** — Point frontend at new Netlify Function URLs instead of Apps Script
-- [ ] **3.5.5 Test and retire Apps Script** — Verify everything works, stop using Apps Script deployment
+- [x] **3.5.1 Set up Netlify Functions** — Single function at `netlify/functions/api.js`
+- [x] **3.5.2 Migrate all endpoints** — login, register, getHeroData, getFeed, createPost, messaging, contacts, characters
+- [x] **3.5.3 Update sheets.js** — Frontend calls `/.netlify/functions/api` instead of Apps Script
+- [x] **3.5.4 Retire Apps Script** — Apps Script restricted. All traffic goes through Netlify Functions.
 
-### Phase 4: myHERO Feed & Mission Thumbnails
-> The core feed where players see available missions and hero activity.
+### Phase 4: Feeds — COMPLETE
+> All 4 feeds are live with distinct visual styles.
 
-- [ ] **4.1 myHERO feed layout** — Scrollable feed with post/mission cards
-- [ ] **4.2 Mission thumbnails** — Visual cards for each of the 3 initial missions (title, description, difficulty, rewards)
-- [ ] **4.3 Mission selection** — Players pick 1 of 3 missions (locked after choosing)
-- [ ] **4.4 Feed posts** — Players and DM can post to the myHERO feed, saved to Sheets
+- [x] **4.1 Unified Feeds tab** — Single Sheets tab with `feed` column for filtering
+- [x] **4.2 Streetview feed** — Noir/dark brown style. Posts are anonymous (Bloodhound must be discovered).
+- [x] **4.3 Daily Dollar feed** — WSJ/newspaper cream style
+- [x] **4.4 myHERO feed** — Job board card style
+- [x] **4.5 Bliink feed** — Instagram dark style with image posts
+- [x] **4.6 Bliink posting** — Preset image picker + caption composer. Posts saved to Feeds tab.
+- [ ] **4.7 Bliink moderation queue** — New posts go to `visible: no`, DM reviews. Styled as "Bliink Quality Control" in-universe
+- [ ] **4.8 Custom image uploads** — Players submit own images (behind moderation wall)
+- [ ] **4.9 Interactions** — Likes, comments (simple versions)
+- [ ] **4.10 Tagging** — Tag other characters in posts
 
-### Phase 5: Mission Flow
-> The choose-your-own-adventure question system.
+### Phase 5: Messaging — COMPLETE
+> 1-on-1 messaging with contact discovery.
 
-- [ ] **5.1 Mission data structure** — Define how branching questions are stored in Sheets
-- [ ] **5.2 Mission player UI** — Sequential question screens, no going back
-- [ ] **5.3 Branching logic** — Player's answer determines next question (3 questions deep, 2-3 choices each)
-- [ ] **5.4 Answer recording** — All answers saved to Sheets for DM review
-- [ ] **5.5 Mission completion** — Player sees a summary; DM reviews and updates stats manually
+- [x] **5.1 Messages & Contacts tabs** — Sheets structure for messages and contact lists
+- [x] **5.2 Inbox view** — Conversations sorted by most recent, unread counts
+- [x] **5.3 Thread view** — Full conversation with reply bar, auto-marks as read
+- [x] **5.4 Contacts** — Zero starting contacts, discovered through feeds
+- [x] **5.5 Character profile popups** — Clickable names in feeds open profile with "Add to Contacts" / "Send Message"
+- [x] **5.6 Auto-add contacts** — Sending a message auto-adds the recipient to contacts
 
-### Phase 6: Bliink Feed
-> Social media feed — players post, tag characters, build followers.
+### Phase 6: Missions — NOT STARTED
+> The choose-your-own-adventure branching system (core gameplay).
 
-- [ ] **6.1 Bliink feed layout** — Social media style feed (think Instagram)
-- [ ] **6.2 Post creation with presets** — Players pick from preset images + write caption
-- [ ] **6.3 Moderation queue** — New posts go to `visible: no`, DM reviews in admin dashboard. Styled as "Bliink Quality Control" in-universe
-- [ ] **6.4 Custom image uploads** — Players can submit their own images (behind moderation wall)
-- [ ] **6.5 Interactions** — Likes, comments (simple versions)
-- [ ] **6.6 Save to Sheets** — All posts and interactions recorded
-- [ ] **6.7 Tagging** — Tag other characters in posts
+- [ ] **6.1 Mission data structure** — Define how branching questions are stored in Sheets
+- [ ] **6.2 Mission thumbnails on myHERO feed** — Visual cards for available missions
+- [ ] **6.3 Mission selection** — Players pick 1 of 3 initial missions (locked after choosing)
+- [ ] **6.4 Mission player UI** — Sequential question screens, no going back
+- [ ] **6.5 Branching logic** — Player's answer determines next question (3 questions deep, 2-3 choices each)
+- [ ] **6.6 Answer recording** — All answers saved to Sheets for DM review
+- [ ] **6.7 Mission completion** — Player sees a summary; DM reviews and updates stats manually
 
-### Phase 7: Messaging
-> Private messages between players (and eventually NPCs).
+### Phase 7: DM Content — NOT STARTED
+> DM needs to populate the world with actual content.
 
-- [ ] **7.1 Message UI** — Simple chat-style interface
-- [ ] **7.2 Send/receive messages** — Between heroes (and NPCs)
-- [ ] **7.3 Save to Sheets** — All messages recorded for DM visibility
+- [ ] **7.1 Write Streetview articles** — Bloodhound's anonymous investigator blog posts
+- [ ] **7.2 Write Daily Dollar articles** — News/finance stories about the city
+- [ ] **7.3 Write myHERO job listings** — Hero jobs, missions, activity posts
+- [ ] **7.4 Write NPC Bliink posts** — Social media posts from NPCs (Mongrel, Dozer, etc.)
+- [ ] **7.5 DM posting from admin dashboard** — Post content without editing Sheets directly (requires Phase 3)
 
-### Phase 8: DM Content Feeds
-> Streetview and Daily Dollar — DM-written content displayed to players.
-
-- [ ] **8.1 Streetview feed** — Blog-style layout, pulls posts from Sheets (Bloodhound's intel blog)
-- [ ] **8.2 Daily Dollar feed** — News/financial style layout, pulls from Sheets
-- [ ] **8.3 DM posting workflow** — Post from admin dashboard, content appears in player feeds
-
-### Phase 9: Influence & Mechanics
+### Phase 8: Influence & Mechanics
 > The systems that make the game feel alive.
 
 - [ ] **9.1 Aggregate score formulas** — Finalize how followers, bank, authority, and clout are calculated and updated
@@ -163,15 +164,17 @@ All rows total 20. Players can redistribute before locking in.
 
 ## Content You'll Need to Prepare
 
-Before we can fully test the game, you'll need:
+Before the game is ready for players:
 
 - [ ] **3 initial missions** — each with branching questions (up to 7 questions per mission if 2 choices, more if 3)
-- [ ] **Streetview posts** — a few initial blog posts from "Bloodhound"
-- [ ] **Daily Dollar posts** — a few initial news/finance articles
-- [ ] **NPC characters** — heroes/villains/public figures for feeds and messages (players won't know they're NPCs)
-- [ ] **Faction list** — names, descriptions, power multipliers (needed for Phase 2)
-- [ ] **Class starting defaults** — bank, followers, and authority values for each of the 10 classes
-- [ ] **Authority scale definition** — what each level of authority means in the game world
+- [ ] **Streetview posts** — real articles for Bloodhound's anonymous blog (replace sample content in Sheets)
+- [ ] **Daily Dollar posts** — real news/finance articles (replace sample content in Sheets)
+- [ ] **myHERO job listings** — hero jobs and activity posts (replace sample content)
+- [ ] **NPC Bliink posts** — social media posts from NPCs to populate the feed
+- [x] ~~**NPC characters**~~ — Bloodhound, Mongrel, Dozer, Head Honcho created
+- [x] ~~**Faction list**~~ — 5 factions created in Sheets
+- [x] ~~**Class starting defaults**~~ — Done, applied at signup
+- [x] ~~**Authority scale definition**~~ — F through SS defined
 
 ---
 
@@ -179,17 +182,16 @@ Before we can fully test the game, you'll need:
 
 These came up in conversation and should be addressed in future sessions:
 
-- **Class starting defaults** — Each class should start with different bank/followers/authority values (e.g., Tycoon starts rich, Celebrity starts famous)
-- **Authority scale** — Need to define what values mean (0-10? 0-100?) and what each level represents
 - **Clout formula** — Faction standing × faction power multiplier, details TBD
-- **Bank system** — Renamed from "net worth". Per-hero currency, visible on profile
-- **Factions** — Need a list of factions with names, descriptions, power multipliers
-- **Characters table** — Unified table for player characters + NPCs, so feeds/messages treat them identically
 - **Admin dashboard** — DM tools for managing NPCs, factions, content, stats, missions
-- **Player posts on feeds** — Ability to post on Bliink and myHERO, with aggregate scores affecting impact
+- **Bliink moderation** — New posts go to `visible: no`, DM reviews. "Bliink Quality Control" in-universe.
+- **Custom image uploads for Bliink** — Behind moderation wall
 - **Tagging other characters** — In posts and messages, works for both player and NPC characters
 - **Feed influence mechanics** — Higher aggregate scores = more impact on the game world through posts
 - **Mission content math** — 3 questions × 2 choices = 7 questions per mission; 3 questions × 3 choices = 13 per mission
+- **Inventory system** — Items + notes in inventory, displayed in Inventory app
+- **Notebook system** — Secret content loaded by content_id, popup overlay display
+- **Save-as-note from messages** — Players save NPC messages as notes to notebook
 
 ---
 
@@ -200,4 +202,4 @@ These came up in conversation and should be addressed in future sessions:
 - Phases 5-7 add the social/content layer
 - Phase 8 is ongoing — mechanics added as the game evolves
 - **Start small, add complexity only when it's needed**
-- Apps Script must be redeployed (new version) every time the code changes
+- Backend auto-deploys with git push (Netlify Functions)
