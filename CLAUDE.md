@@ -99,6 +99,41 @@ Hero, Celebrity, Politician, Sleuth, Tycoon, Visionary, Mogul, Mercenary, Champi
 - DM manually updates stats after review (automation later)
 - 3 initial missions, each player picks 1
 
+### Asset System (Character Images)
+
+Character visual assets are stored in the repo under `assets/characters/`. Each character gets their own subfolder named after their `asset_slug`.
+
+**Folder structure:**
+```
+assets/characters/
+  bloodhound/
+    profile.png   ← circular avatar shown in character popups
+    cutout.png    ← transparent-background PNG for use in missions, posts, articles
+  mongrel/
+    profile.png
+    cutout.png
+  ...
+```
+
+**How it works:**
+- The Characters tab in Sheets has an `asset_slug` column (e.g. `bloodhound`, `mongrel`, `dozer`)
+- The backend returns `asset_slug` with character data automatically (no special backend logic needed — it reads all columns)
+- The frontend builds the image path: `/assets/characters/{slug}/profile.png`
+- If `asset_slug` is blank, the popup falls back to showing the character's first initial
+- Netlify serves all files in the repo as static assets — no image hosting service needed
+
+**Adding a new character's photos:**
+1. Create `assets/characters/{slug}/` folder
+2. Drop in `profile.png` and/or `cutout.png`
+3. Set `asset_slug` to the slug in the Characters tab of Sheets
+4. Git push — Netlify auto-deploys, images are live immediately
+
+**Slug naming convention:** lowercase, no spaces, use hyphens if needed (e.g. `head-honcho`, `mr-smith`)
+
+**Asset types (current and planned):**
+- `profile.png` — headshot/avatar for character popup
+- `cutout.png` — transparent background version for compositing into missions, feed posts, articles
+
 ### Player Mystery
 Players don't know which characters are NPCs and which are real players. All characters are presented the same way in feeds and messages.
 
@@ -106,7 +141,7 @@ Players don't know which characters are NPCs and which are real players. All cha
 
 **Tab: Players** — Columns: username, password_hash, hero_name, class, might, agility, charm, intuition, commerce, intelligence, followers, bank, positional_authority, clout
 
-**Tab: Characters** — All characters (player + NPC). Columns: character_name, type (player/npc), username (blank for NPCs), class, bio, faction, profile_visible. NPCs start light (no stats), stats added later if needed.
+**Tab: Characters** — All characters (player + NPC). Columns: character_name, type (player/npc), username (blank for NPCs), class, bio, faction, profile_visible, asset_slug. NPCs start light (no stats), stats added later if needed. `asset_slug` is a lowercase identifier (e.g. `bloodhound`) used to locate all assets for that character in `assets/characters/{slug}/`.
 **Tab: Factions** — Columns: faction_name, description, power_multiplier, leader
 **Tab: Inventory** — Per-player items and notes. Columns: username, item_name, type (item/note), content_id (for notes), description
 **Tab: NoteContent** — Secret content for notes. Columns: content_id, title, body_text, image_url. Only loaded when a player with the note clicks it.
@@ -128,6 +163,7 @@ Players don't know which characters are NPCs and which are real players. All cha
 - Profile page with 4 aggregate scores + 6 base skills
 - Class starting defaults (bank, followers, authority) applied at signup
 - Factions and NPC characters created in Sheets
+- Character profile photos — asset system with `assets/characters/{slug}/profile.png`, shown in popup; falls back to first initial. Bloodhound, Mongrel, Dozer have photos.
 - Backend fully on Netlify Functions (auto-deploys with git push)
 - Live at https://myherogame.netlify.app
 

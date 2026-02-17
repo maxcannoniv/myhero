@@ -1475,6 +1475,15 @@ select.form-input option {
   font-size: 1.5rem;
   color: var(--accent-yellow);
   flex-shrink: 0;
+  overflow: hidden; /* clips the photo to the circle */
+}
+
+/* When a character has a profile photo, fill the circle */
+.char-popup-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* fills the circle without stretching */
+  border-radius: 50%;
 }
 
 .char-popup-info h3 {

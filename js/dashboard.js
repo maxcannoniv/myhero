@@ -424,7 +424,13 @@ function openCharacterPopup(characterName) {
       document.getElementById('charPopupClass').textContent = c.class || '';
       document.getElementById('charPopupFaction').textContent = c.faction || 'Independent';
       document.getElementById('charPopupBio').textContent = c.bio || '';
-      document.getElementById('charPopupAvatar').textContent = c.character_name.charAt(0).toUpperCase();
+      // Show profile photo if one exists, otherwise fall back to first initial
+      var avatarEl = document.getElementById('charPopupAvatar');
+      if (c.asset_slug) {
+        avatarEl.innerHTML = '<img src="/assets/characters/' + c.asset_slug + '/profile.png" alt="' + c.character_name + '">';
+      } else {
+        avatarEl.textContent = c.character_name.charAt(0).toUpperCase();
+      }
     } else {
       document.getElementById('charPopupName').textContent = characterName;
       document.getElementById('charPopupBio').textContent = 'No profile found.';
