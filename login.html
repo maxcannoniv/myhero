@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyHERO — Sign In</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-container">
+      <h1 class="login-title">MyHERO</h1>
+      <p class="login-subtitle">Every hero starts somewhere.</p>
+
+      <!-- ===== LOGIN FORM ===== -->
+      <div class="comic-panel" id="loginPanel">
+        <form class="login-form" id="loginForm">
+          <div>
+            <label class="form-label" for="loginUsername">Username</label>
+            <input class="form-input" type="text" id="loginUsername" placeholder="Enter your username..." required>
+          </div>
+          <div>
+            <label class="form-label" for="loginPassword">Password</label>
+            <input class="form-input" type="password" id="loginPassword" placeholder="Enter your password..." required>
+          </div>
+          <p class="error-msg" id="loginError"></p>
+          <button type="submit" class="btn btn-primary" id="loginBtn">Enter the City</button>
+        </form>
+        <p class="form-switch">New hero? <span class="form-switch-link" id="showSignup">Create an Account</span></p>
+      </div>
+
+      <!-- ===== SIGNUP FORM ===== -->
+      <div class="comic-panel" id="signupPanel" style="display: none;">
+        <form class="login-form" id="signupForm">
+          <div>
+            <label class="form-label" for="signupUsername">Username</label>
+            <input class="form-input" type="text" id="signupUsername" placeholder="Choose a username..." required>
+          </div>
+          <div>
+            <label class="form-label" for="signupPassword">Password</label>
+            <input class="form-input" type="password" id="signupPassword" placeholder="Choose a password..." required>
+          </div>
+          <div>
+            <label class="form-label" for="signupPassword2">Confirm Password</label>
+            <input class="form-input" type="password" id="signupPassword2" placeholder="Type it again..." required>
+          </div>
+
+          <hr class="form-divider">
+
+          <div>
+            <label class="form-label" for="heroName">Hero Name</label>
+            <input class="form-input" type="text" id="heroName" placeholder="What do they call you?" required>
+          </div>
+          <div>
+            <label class="form-label" for="heroClass">Archetype</label>
+            <select class="form-input" id="heroClass" required>
+              <option value="">— Choose your archetype —</option>
+              <option value="Hero">The Hero</option>
+              <option value="Celebrity">The Celebrity</option>
+              <option value="Politician">The Politician</option>
+              <option value="Sleuth">The Sleuth</option>
+              <option value="Tycoon">The Tycoon</option>
+              <option value="Visionary">The Visionary</option>
+              <option value="Mogul">The Mogul</option>
+              <option value="Mercenary">The Mercenary</option>
+              <option value="Champion">The Champion</option>
+              <option value="Philanthropist">The Philanthropist</option>
+            </select>
+          </div>
+
+          <!-- Skill editor (shows when a class is selected) -->
+          <div id="skillEditor" style="display: none;">
+            <div class="skill-editor-header">
+              <label class="form-label">Assign Skills</label>
+              <div class="skill-editor-meta">
+                <span>Points remaining: <strong id="pointsRemaining">0</strong></span>
+                <button type="button" class="skill-reset-btn" id="resetSkills">Reset to Default</button>
+              </div>
+            </div>
+            <div id="skillEditorGrid"></div>
+          </div>
+
+          <p class="error-msg" id="signupError"></p>
+          <button type="submit" class="btn btn-primary" id="signupBtn">Create Hero</button>
+        </form>
+        <p class="form-switch">Already have an account? <span class="form-switch-link" id="showLogin">Log In</span></p>
+      </div>
+
+      <p class="form-switch" style="margin-top: 20px;">
+        <a href="classes.html" class="form-switch-link">Browse Archetypes</a>
+        &nbsp;&middot;&nbsp;
+        <a href="index.html" class="form-switch-link">Back to Broadcast</a>
+      </p>
+
+    </div>
+  </div>
+
+  <script src="js/sheets.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyHERO — Terminal</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="terminal">
+
+    <!-- ===== STATUS BAR (always visible) ===== -->
+    <div class="status-bar">
+      <div class="status-left">
+        <span class="status-hero-name" id="statusHeroName">Hero Name</span>
+        <span class="status-hero-class" id="statusHeroClass">Class</span>
+      </div>
+      <div class="status-right">
+        <span class="status-stat" id="statusFollowers" title="Followers">&#9733; —</span>
+        <span class="status-stat" id="statusNetWorth" title="Bank">&#36; —</span>
+        <button class="status-logout" id="logoutBtn">&#9211;</button>
+      </div>
+    </div>
+
+    <!-- ===== HOME SCREEN (app grid) ===== -->
+    <div class="home-screen active" id="homeScreen">
+      <div class="app-grid">
+
+        <div class="app-icon" data-app="myhero">
+          <div class="app-icon-graphic" style="background: var(--accent-yellow);">&#9889;</div>
+          <span class="app-icon-label">myHERO</span>
+        </div>
+
+        <div class="app-icon" data-app="bliink">
+          <div class="app-icon-graphic" style="background: var(--accent-purple);">&#128065;</div>
+          <span class="app-icon-label">Bliink</span>
+        </div>
+
+        <div class="app-icon" data-app="streetview">
+          <div class="app-icon-graphic" style="background: var(--accent-red);">&#128373;</div>
+          <span class="app-icon-label">Streetview</span>
+        </div>
+
+        <div class="app-icon" data-app="dailydollar">
+          <div class="app-icon-graphic" style="background: var(--accent-green);">&#36;</div>
+          <span class="app-icon-label">Daily Dollar</span>
+        </div>
+
+        <div class="app-icon" data-app="messages">
+          <div class="app-icon-graphic" style="background: var(--accent-blue);">&#9993;</div>
+          <span class="app-icon-label">Messages</span>
+        </div>
+
+        <div class="app-icon" data-app="profile">
+          <div class="app-icon-graphic" style="background: #888;">&#9881;</div>
+          <span class="app-icon-label">Profile</span>
+        </div>
+
+        <div class="app-icon" data-app="inventory">
+          <div class="app-icon-graphic" style="background: #c97b2a;">&#127890;</div>
+          <span class="app-icon-label">Inventory</span>
+        </div>
+
+        <div class="app-icon" data-app="notebook">
+          <div class="app-icon-graphic" style="background: #e8d5b7; color: #333;">&#128221;</div>
+          <span class="app-icon-label">Notebook</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===== APP VIEWS (each opens full-screen below status bar) ===== -->
+
+    <!-- myHERO App -->
+    <div class="app-view" id="app-myhero">
+      <div class="app-titlebar">
+        <button class="app-home-btn" data-home>&larr; Home</button>
+        <span class="app-titlebar-name">myHERO</span>
+      </div>
+      <div class="app-body">
+        <div class="placeholder-content">
+          <div class="placeholder-icon">&#9889;</div>
+          <h3>Coming Soon</h3>
+          <p>Browse available jobs and missions posted by the city. Accept work, build your reputation.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bliink App -->
+    <div class="app-view" id="app-bliink">
+      <div class="app-titlebar">
+        <button class="app-home-btn" data-home>&larr; Home</button>
+        <span class="app-titlebar-name">Bliink</span>
+      </div>
+      <div class="app-body">
+        <div class="placeholder-content">
+          <div class="placeholder-icon">&#128065;</div>
+          <h3>Coming Soon</h3>
+          <p>The city's social feed. Post content, tag heroes, and build your following.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Streetview App -->
+    <div class="app-view" id="app-streetview">
+      <div class="app-titlebar">
+        <button class="app-home-btn" data-home>&larr; Home</button>
+        <span class="app-titlebar-name">Streetview</span>
+      </div>
+      <div class="app-body">
+        <div class="placeholder-content">
+          <div class="placeholder-icon">&#128373;</div>
+          <h3>Coming Soon</h3>
+          <p>Bloodhound's underground blog — crime reports, corruption leaks, and city secrets.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Dollar App -->
+    <div class="app-view" id="app-dailydollar">
+      <div class="app-titlebar">
+        <button class="app-home-btn" data-home>&larr; Home</button>
+        <span class="app-titlebar-name">Daily Dollar</span>
+      </div>
+      <div class="app-body">
+        <div class="placeholder-content">
+          <div class="placeholder-icon">&#36;</div>
+          <h3>Coming Soon</h3>
+          <p>Market trends, faction resources, and financial opportunities across the city.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages App -->
+    <div class="app-view" id="app-messages">
+      <div class="app-titlebar">
+        <button class="app-home-btn" data-home>&larr; Home</button>
+        <span class="app-titlebar-name">Messages</span>
+      </div>
+      <div class="app-body">
+        <div class="placeholder-content">
+          <div class="placeholder-icon">&#9993;</div>
+          <h3>Coming Soon</h3>
+          <p>Send and receive private messages with other heroes and city contacts.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory App -->
+    <div class="app-view" id="app-inventory">
+      <div class="app-titlebar">
+        <button class="app-home-btn" data-home>&larr; Home</button>
+        <span class="app-titlebar-name">Inventory</span>
+      </div>
+      <div class="app-body">
+        <div class="placeholder-content">
+          <div class="placeholder-icon">&#127890;</div>
+          <h3>Coming Soon</h3>
+          <p>Your items, gear, and possessions. Anything you pick up or get rewarded shows up here.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notebook App -->
+    <div class="app-view" id="app-notebook">
+      <div class="app-titlebar">
+        <button class="app-home-btn" data-home>&larr; Home</button>
+        <span class="app-titlebar-name">Notebook</span>
+      </div>
+      <div class="app-body">
+        <div class="placeholder-content">
+          <div class="placeholder-icon">&#128221;</div>
+          <h3>Coming Soon</h3>
+          <p>Saved notes, clues, and intel. Tap a note to read its contents. Your eyes only.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile App -->
+    <div class="app-view" id="app-profile">
+      <div class="app-titlebar">
+        <button class="app-home-btn" data-home>&larr; Home</button>
+        <span class="app-titlebar-name">Profile</span>
+      </div>
+      <div class="app-body">
+
+        <!-- Hero identity -->
+        <div class="profile-identity">
+          <h3 id="profileHeroName">Loading...</h3>
+          <p id="profileHeroClass" class="profile-class"></p>
+        </div>
+
+        <!-- 4 Aggregate scores (top, prominent) -->
+        <div class="aggregate-grid" id="aggregateGrid">
+          <div class="aggregate-card agg-followers">
+            <div class="aggregate-value" id="aggFollowers">—</div>
+            <div class="aggregate-label">Followers</div>
+          </div>
+          <div class="aggregate-card agg-networth">
+            <div class="aggregate-value" id="aggNetWorth">—</div>
+            <div class="aggregate-label">Bank</div>
+          </div>
+          <div class="aggregate-card agg-authority">
+            <div class="aggregate-value" id="aggAuthority">—</div>
+            <div class="aggregate-label">Authority</div>
+          </div>
+          <div class="aggregate-card agg-clout">
+            <div class="aggregate-value" id="aggClout">—</div>
+            <div class="aggregate-label">Clout</div>
+          </div>
+        </div>
+
+        <!-- Section divider -->
+        <div class="profile-section-label">Base Skills</div>
+
+        <!-- 6 Base skills (below, different style) -->
+        <div class="skills-grid" id="skillsGrid">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/sheets.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
