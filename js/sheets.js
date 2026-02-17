@@ -78,3 +78,13 @@ async function sheetsGetHeroData(username) {
 async function sheetsRegister(data) {
   return await callAppsScript('register', data);
 }
+
+/**
+ * Get all visible posts for a specific feed.
+ *
+ * @param {string} feedName - The feed to fetch ('streetview', 'dailydollar', 'myhero', 'bliink')
+ * @returns {object} - { success: true, posts: [...] } or { success: false, error: '...' }
+ */
+async function sheetsGetFeed(feedName) {
+  return await callAppsScript('getFeed', { feed: feedName });
+}

@@ -24,7 +24,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [x] **1.7 Landing page** — In-universe "city broadcast" intro page
 - [x] **1.8 Classes page** — 10 archetypes with flavor text and skill tags
 - [ ] **1.9 Test full flow end-to-end** — Landing → Classes → Signup → Dashboard → Logout → Login
-- [ ] **1.10 Deploy to Netlify** — Get a live URL to share with players
+- [x] **1.10 Deploy to Netlify** — Live at https://myherogame.netlify.app, auto-deploys from GitHub
 
 ---
 
@@ -55,6 +55,15 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [ ] **3.6 Feed content posting** — Write Streetview and Daily Dollar posts from admin dashboard (instead of editing Sheets directly)
 - [ ] **3.7 Mission management** — Create and edit missions from admin dashboard
 - [ ] **3.8 Stat updates** — Manually adjust any player's skills, bank, followers, authority from admin
+
+### Phase 3.5: Migrate Backend to Netlify Functions
+> Eliminate manual Apps Script redeployment. Code auto-deploys with git push.
+
+- [ ] **3.5.1 Set up Netlify Functions** — Create serverless functions that replace Apps Script endpoints
+- [ ] **3.5.2 Migrate login/signup/getHeroData** — Move player auth to Netlify Functions using service account
+- [ ] **3.5.3 Migrate getFeed** — Move feed fetching to Netlify Functions
+- [ ] **3.5.4 Update sheets.js** — Point frontend at new Netlify Function URLs instead of Apps Script
+- [ ] **3.5.5 Test and retire Apps Script** — Verify everything works, stop using Apps Script deployment
 
 ### Phase 4: myHERO Feed & Mission Thumbnails
 > The core feed where players see available missions and hero activity.

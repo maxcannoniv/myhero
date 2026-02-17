@@ -924,6 +924,266 @@ select.form-input option {
   margin-top: 4px;
 }
 
+/* --- Feed shared styles --- */
+.feed-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 20px;
+  font-size: 0.95rem;
+}
+
+/* ============================================
+   STREETVIEW — Noir blog / private eye
+   ============================================ */
+.app-titlebar-streetview {
+  background: #1a1210;
+  border-bottom-color: #3a2a1a;
+}
+
+.app-titlebar-streetview .app-titlebar-name {
+  color: var(--accent-red);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.app-body-streetview {
+  background: #1a1210;
+}
+
+.sv-post {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 20px 0;
+}
+
+.sv-post:first-child {
+  padding-top: 0;
+}
+
+.sv-date {
+  font-size: 0.75rem;
+  color: #806050;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.sv-title {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #e8d5c0;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-bottom: 10px;
+}
+
+.sv-image {
+  width: 100%;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  opacity: 0.85;
+}
+
+.sv-body {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: #b0a090;
+  font-style: italic;
+}
+
+.sv-author {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--accent-red);
+  font-style: italic;
+}
+
+/* ============================================
+   DAILY DOLLAR — Wall Street Journal inspired
+   ============================================ */
+.app-titlebar-dailydollar {
+  background: #f5f0e8;
+  border-bottom-color: #d0c8b8;
+}
+
+.app-titlebar-dailydollar .app-titlebar-name {
+  color: #1a1a1a;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.app-titlebar-dailydollar .app-home-btn {
+  color: #555;
+}
+
+.app-body-dailydollar {
+  background: #f5f0e8;
+}
+
+.dd-post {
+  border-bottom: 1px solid #d0c8b8;
+  padding: 20px 0;
+}
+
+.dd-post:first-child {
+  padding-top: 0;
+}
+
+.dd-dateline {
+  font-size: 0.7rem;
+  color: #888;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.dd-headline {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: #1a1a1a;
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.3;
+  margin-bottom: 10px;
+}
+
+.dd-image {
+  width: 100%;
+  border-radius: 2px;
+  margin-bottom: 10px;
+}
+
+.dd-body {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: #333;
+}
+
+/* ============================================
+   MYHERO — Job board / Fiverr style
+   ============================================ */
+.app-body-myhero {
+  padding: 12px;
+}
+
+.mh-card {
+  background: var(--bg-panel);
+  border: 2px solid var(--border-comic);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: 2px 2px 0px var(--border-comic);
+}
+
+.mh-image {
+  width: 100%;
+  display: block;
+}
+
+.mh-content {
+  padding: 14px;
+}
+
+.mh-title {
+  font-family: var(--font-comic);
+  font-size: 1rem;
+  color: var(--accent-yellow);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.mh-body {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--text-light);
+  margin-bottom: 10px;
+}
+
+.mh-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mh-poster {
+  font-family: var(--font-comic);
+  font-size: 0.75rem;
+  color: var(--accent-blue);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.mh-date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* ============================================
+   BLIINK — Instagram style
+   ============================================ */
+.app-titlebar-bliink {
+  background: #0a0a14;
+}
+
+.app-titlebar-bliink .app-titlebar-name {
+  color: var(--accent-purple);
+}
+
+.app-body-bliink {
+  background: #0a0a14;
+  padding: 0;
+}
+
+.bl-post {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+.bl-header {
+  padding: 10px 16px;
+}
+
+.bl-username {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+.bl-image {
+  width: 100%;
+  display: block;
+}
+
+.bl-caption {
+  padding: 10px 16px 4px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-light);
+}
+
+.bl-caption .bl-username {
+  font-size: 0.88rem;
+}
+
+.bl-date {
+  padding: 0 16px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 /* --- Loading Spinner --- */
 .loading {
   display: flex;

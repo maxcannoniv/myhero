@@ -29,6 +29,9 @@ const appIcons = document.querySelectorAll('.app-icon');
 const appViews = document.querySelectorAll('.app-view');
 const homeBtns = document.querySelectorAll('[data-home]');
 
+// Track which feeds have been loaded so we don't re-fetch every time
+var feedsLoaded = {};
+
 // Open an app when its icon is tapped
 appIcons.forEach(function(icon) {
   icon.addEventListener('click', function() {
@@ -40,6 +43,12 @@ appIcons.forEach(function(icon) {
       homeScreen.classList.remove('active');
       // Show the app
       appView.classList.add('active');
+
+      // Load feed data if this is a feed app and hasn't been loaded yet
+      if (!feedsLoaded[appName] && ['streetview', 'dailydollar', 'myhero', 'bliink'].indexOf(appName) !== -1) {
+        loadFeed(appName);
+        feedsLoaded[appName] = true;
+      }
     }
   });
 });
@@ -112,6 +121,126 @@ function displayHeroProfile(hero) {
     skillsGrid.appendChild(card);
   });
 }
+
+// -----------------------------------------------
+// FEED LOADING AND RENDERING
+// -----------------------------------------------
+
+function loadFeed(feedName) {
+  var container = document.getElementById('feed-' + feedName);
+  if (!container) return;
+
+  // Show loading spinner
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  sheetsGetFeed(feedName).then(function(result) {
+    if (result.success && result.posts && result.posts.length > 0) {
+      container.innerHTML = '';
+      result.posts.forEach(function(post) {
+        var el = renderPost(feedName, post);
+        container.appendChild(el);
+      });
+    } else {
+      container.innerHTML = '<div class="feed-empty">No posts yet.</div>';
+    }
+  });
+}
+
+// Format a timestamp into something readable
+function formatDate(timestamp) {
+  if (!timestamp) return '';
+  var d = new Date(timestamp);
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
+// Render a single post — different style per feed
+function renderPost(feedName, post) {
+  if (feedName === 'streetview') return renderStreetview(post);
+  if (feedName === 'dailydollar') return renderDailyDollar(post);
+  if (feedName === 'myhero') return renderMyHero(post);
+  if (feedName === 'bliink') return renderBliink(post);
+  return document.createElement('div');
+}
+
+// --- STREETVIEW: noir blog style ---
+function renderStreetview(post) {
+  var article = document.createElement('article');
+  article.className = 'sv-post';
+
+  var html = '<div class="sv-date">' + formatDate(post.timestamp) + '</div>';
+  html += '<h3 class="sv-title">' + (post.title || '') + '</h3>';
+  if (post.image_url) {
+    html += '<img class="sv-image" src="' + post.image_url + '" alt="">';
+  }
+  html += '<p class="sv-body">' + (post.body || '') + '</p>';
+  html += '<div class="sv-author">— ' + (post.posted_by || 'Anonymous') + '</div>';
+
+  article.innerHTML = html;
+  return article;
+}
+
+// --- DAILY DOLLAR: newspaper style ---
+function renderDailyDollar(post) {
+  var article = document.createElement('article');
+  article.className = 'dd-post';
+
+  var html = '<div class="dd-dateline">' + formatDate(post.timestamp) + '</div>';
+  html += '<h3 class="dd-headline">' + (post.title || '') + '</h3>';
+  if (post.image_url) {
+    html += '<img class="dd-image" src="' + post.image_url + '" alt="">';
+  }
+  html += '<p class="dd-body">' + (post.body || '') + '</p>';
+
+  article.innerHTML = html;
+  return article;
+}
+
+// --- MYHERO: job board / Fiverr style ---
+function renderMyHero(post) {
+  var card = document.createElement('div');
+  card.className = 'mh-card';
+
+  var html = '';
+  if (post.image_url) {
+    html += '<img class="mh-image" src="' + post.image_url + '" alt="">';
+  }
+  html += '<div class="mh-content">';
+  html += '<h3 class="mh-title">' + (post.title || '') + '</h3>';
+  html += '<p class="mh-body">' + (post.body || '') + '</p>';
+  html += '<div class="mh-meta">';
+  html += '<span class="mh-poster">' + (post.posted_by || '') + '</span>';
+  html += '<span class="mh-date">' + formatDate(post.timestamp) + '</span>';
+  html += '</div></div>';
+
+  card.innerHTML = html;
+  return card;
+}
+
+// --- BLIINK: Instagram style ---
+function renderBliink(post) {
+  var card = document.createElement('div');
+  card.className = 'bl-post';
+
+  var html = '<div class="bl-header">';
+  html += '<span class="bl-username">' + (post.posted_by || 'Anonymous') + '</span>';
+  html += '</div>';
+  if (post.image_url) {
+    html += '<img class="bl-image" src="' + post.image_url + '" alt="">';
+  }
+  html += '<div class="bl-caption">';
+  html += '<span class="bl-username">' + (post.posted_by || '') + '</span> ';
+  html += (post.body || '');
+  html += '</div>';
+  html += '<div class="bl-date">' + formatDate(post.timestamp) + '</div>';
+
+  card.innerHTML = html;
+  return card;
+}
+
+// -----------------------------------------------
+// LOAD HERO DATA
+// -----------------------------------------------
 
 // Load hero data — first from session, then try refreshing from Sheets
 if (session && session.hero) {

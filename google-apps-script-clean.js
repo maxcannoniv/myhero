@@ -10,6 +10,8 @@ function doPost(e) {
     result = handleGetHeroData(data.username);
   } else if (action === 'register') {
     result = handleRegister(data);
+  } else if (action === 'getFeed') {
+    result = handleGetFeed(data.feed);
   } else {
     result = { success: false, error: 'Unknown action: ' + action };
   }
@@ -168,4 +170,36 @@ function handleRegister(data) {
   }
 
   return { success: true, hero: hero };
+}
+
+function handleGetFeed(feedName) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Feeds');
+
+  if (!sheet) {
+    return { success: false, error: 'Feeds sheet not found.' };
+  }
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+
+  var posts = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var post = {};
+    for (var j = 0; j < headers.length; j++) {
+      post[headers[j]] = row[j];
+    }
+
+    // Only return posts for the requested feed that are visible
+    if (post.feed === feedName && post.visible === 'yes') {
+      posts.push(post);
+    }
+  }
+
+  // Sort by timestamp, newest first
+  posts.sort(function(a, b) {
+    return new Date(b.timestamp) - new Date(a.timestamp);
+  });
+
+  return { success: true, posts: posts };
 }
