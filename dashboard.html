@@ -276,20 +276,22 @@
   <div class="char-popup-overlay" id="charPopupOverlay" style="display: none;">
     <div class="char-popup">
       <button class="char-popup-close" id="charPopupClose">&times;</button>
-      <div class="char-popup-header">
-        <div class="char-popup-avatar" id="charPopupAvatar">?</div>
+      <!-- Large character image sits flush at top of card -->
+      <div class="char-popup-avatar" id="charPopupAvatar">?</div>
+      <!-- Info, bio, and actions sit below with padding -->
+      <div class="char-popup-body">
         <div class="char-popup-info">
           <h3 id="charPopupName">Loading...</h3>
           <p id="charPopupRole"></p>
           <p id="charPopupFaction"></p>
         </div>
+        <p class="char-popup-bio" id="charPopupBio"></p>
+        <div class="char-popup-actions">
+          <button class="btn btn-primary char-popup-btn" id="charSendMsgBtn">Send Message</button>
+          <button class="btn btn-secondary char-popup-btn" id="charAddContactBtn">Add to Contacts</button>
+        </div>
+        <div class="char-popup-status" id="charPopupStatus"></div>
       </div>
-      <p class="char-popup-bio" id="charPopupBio"></p>
-      <div class="char-popup-actions">
-        <button class="btn btn-primary char-popup-btn" id="charSendMsgBtn">Send Message</button>
-        <button class="btn btn-secondary char-popup-btn" id="charAddContactBtn">Add to Contacts</button>
-      </div>
-      <div class="char-popup-status" id="charPopupStatus"></div>
     </div>
   </div>
 
