@@ -1066,6 +1066,13 @@ select.form-input option {
   color: #333;
 }
 
+.dd-byline {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: #888;
+  font-style: italic;
+}
+
 /* ============================================
    MYHERO — Job board / Fiverr style
    ============================================ */

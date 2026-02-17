@@ -161,6 +161,13 @@ function formatDate(timestamp) {
   return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
 }
 
+// Replace [Name] in post body text with a clickable span.
+// DM writes [Mongrel] in Sheets → renders as a tappable character link.
+function linkifyNames(text) {
+  if (!text) return '';
+  return text.replace(/\[([^\]]+)\]/g, '<span class="clickable-name" data-character="$1">$1</span>');
+}
+
 // Render a single post — different style per feed
 function renderPost(feedName, post) {
   if (feedName === 'streetview') return renderStreetview(post);
@@ -181,7 +188,7 @@ function renderStreetview(post) {
   if (post.image_url) {
     html += '<img class="sv-image" src="' + post.image_url + '" alt="">';
   }
-  html += '<p class="sv-body">' + (post.body || '') + '</p>';
+  html += '<p class="sv-body">' + linkifyNames(post.body) + '</p>';
 
   article.innerHTML = html;
   return article;
@@ -197,7 +204,10 @@ function renderDailyDollar(post) {
   if (post.image_url) {
     html += '<img class="dd-image" src="' + post.image_url + '" alt="">';
   }
-  html += '<p class="dd-body">' + (post.body || '') + '</p>';
+  html += '<p class="dd-body">' + linkifyNames(post.body) + '</p>';
+  if (post.posted_by) {
+    html += '<div class="dd-byline"><span class="clickable-name" data-character="' + post.posted_by + '">' + post.posted_by + '</span></div>';
+  }
 
   article.innerHTML = html;
   return article;
@@ -214,7 +224,7 @@ function renderMyHero(post) {
   }
   html += '<div class="mh-content">';
   html += '<h3 class="mh-title">' + (post.title || '') + '</h3>';
-  html += '<p class="mh-body">' + (post.body || '') + '</p>';
+  html += '<p class="mh-body">' + linkifyNames(post.body) + '</p>';
   html += '<div class="mh-meta">';
   html += '<span class="mh-poster">' + (post.posted_by || '') + '</span>';
   html += '<span class="mh-date">' + formatDate(post.timestamp) + '</span>';
@@ -237,7 +247,7 @@ function renderBliink(post) {
   }
   html += '<div class="bl-caption">';
   html += '<span class="bl-username">' + (post.posted_by || '') + '</span> ';
-  html += (post.body || '');
+  html += linkifyNames(post.body);
   html += '</div>';
   html += '<div class="bl-date">' + formatDate(post.timestamp) + '</div>';
 
@@ -264,9 +274,9 @@ function renderTidbit(post) {
   if (post.image_url) {
     html += '<img class="tt-image" src="' + post.image_url + '" alt="">';
   }
-  html += '<p class="tt-body">' + (post.body || '') + '</p>';
+  html += '<p class="tt-body">' + linkifyNames(post.body) + '</p>';
   if (post.posted_by) {
-    html += '<div class="tt-byline">By ' + post.posted_by + '</div>';
+    html += '<div class="tt-byline">By <span class="clickable-name" data-character="' + post.posted_by + '">' + post.posted_by + '</span></div>';
   }
 
   article.innerHTML = html;
@@ -516,12 +526,23 @@ document.getElementById('charAddContactBtn').addEventListener('click', function(
 // CLICKABLE CHARACTER NAMES IN FEEDS
 // -----------------------------------------------
 
-// Make posted_by names clickable in feed posts
-// Called after feeds render — wraps character names in clickable spans
+// Make character names clickable in feed posts.
+// Two mechanisms:
+//   1. data-character spans — any element with data-character="Name" opens that character's popup.
+//      Used by [Name] syntax in body text and explicit bylines.
+//   2. Legacy element-based — Bliink headers and myHERO poster names.
 function makeNamesClickable(container) {
-  // Find all elements with character names
-  var nameEls = container.querySelectorAll('.bl-username, .mh-poster, .dd-dateline');
-  // For Bliink, the username in the header is the clickable one
+  // Single event listener on the container catches all data-character spans,
+  // including ones inside body text rendered by linkifyNames().
+  container.addEventListener('click', function(e) {
+    var target = e.target;
+    if (target.dataset && target.dataset.character) {
+      e.stopPropagation();
+      openCharacterPopup(target.dataset.character);
+    }
+  });
+
+  // Bliink: make the username in the post header clickable
   var bliinkHeaders = container.querySelectorAll('.bl-header .bl-username');
   bliinkHeaders.forEach(function(el) {
     var name = el.textContent.trim();
@@ -534,7 +555,7 @@ function makeNamesClickable(container) {
     }
   });
 
-  // For myHERO poster names
+  // myHERO: make the poster name in the card footer clickable
   var mhPosters = container.querySelectorAll('.mh-poster');
   mhPosters.forEach(function(el) {
     var name = el.textContent.trim();
