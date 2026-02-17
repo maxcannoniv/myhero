@@ -45,7 +45,7 @@ appIcons.forEach(function(icon) {
       appView.classList.add('active');
 
       // Load feed data if this is a feed app and hasn't been loaded yet
-      if (!feedsLoaded[appName] && ['streetview', 'dailydollar', 'myhero', 'bliink'].indexOf(appName) !== -1) {
+      if (!feedsLoaded[appName] && ['streetview', 'dailydollar', 'myhero', 'bliink', 'todaystidbit'].indexOf(appName) !== -1) {
         loadFeed(appName);
         feedsLoaded[appName] = true;
       }
@@ -167,6 +167,7 @@ function renderPost(feedName, post) {
   if (feedName === 'dailydollar') return renderDailyDollar(post);
   if (feedName === 'myhero') return renderMyHero(post);
   if (feedName === 'bliink') return renderBliink(post);
+  if (feedName === 'todaystidbit') return renderTidbit(post);
   return document.createElement('div');
 }
 
@@ -242,6 +243,34 @@ function renderBliink(post) {
 
   card.innerHTML = html;
   return card;
+}
+
+// --- TODAY'S TIDBIT: local newspaper style ---
+function renderTidbit(post) {
+  var article = document.createElement('article');
+  article.className = 'tt-post';
+
+  // Format date the way a newspaper would: "Monday, February 17, 2026"
+  var dateStr = '';
+  if (post.timestamp) {
+    var d = new Date(post.timestamp);
+    var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    dateStr = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+
+  var html = '<div class="tt-dateline">' + dateStr + '</div>';
+  html += '<h3 class="tt-headline">' + (post.title || '') + '</h3>';
+  if (post.image_url) {
+    html += '<img class="tt-image" src="' + post.image_url + '" alt="">';
+  }
+  html += '<p class="tt-body">' + (post.body || '') + '</p>';
+  if (post.posted_by) {
+    html += '<div class="tt-byline">By ' + post.posted_by + '</div>';
+  }
+
+  article.innerHTML = html;
+  return article;
 }
 
 // -----------------------------------------------

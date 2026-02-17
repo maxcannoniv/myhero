@@ -46,6 +46,11 @@
           <span class="app-icon-label">Daily Dollar</span>
         </div>
 
+        <div class="app-icon" data-app="todaystidbit">
+          <div class="app-icon-graphic" style="background: #2c2218;">&#128240;</div>
+          <span class="app-icon-label">Tidbit</span>
+        </div>
+
         <div class="app-icon" data-app="messages">
           <div class="app-icon-graphic" style="background: var(--accent-blue);">&#9993;</div>
           <span class="app-icon-label">Messages</span>
@@ -149,6 +154,24 @@
       </div>
       <div class="app-body app-body-dailydollar">
         <div id="feed-dailydollar">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Tidbit App -->
+    <div class="app-view" id="app-todaystidbit">
+      <div class="app-titlebar app-titlebar-tidbit">
+        <button class="app-home-btn" data-home>&larr; Home</button>
+        <span class="app-titlebar-name">Today's Tidbit</span>
+      </div>
+      <div class="app-body app-body-tidbit">
+        <!-- Masthead — permanent banner at top of the paper -->
+        <div class="tt-masthead">
+          <div class="tt-masthead-name">Today's Tidbit</div>
+          <div class="tt-masthead-tagline">Your neighborhood's paper of record</div>
+        </div>
+        <div id="feed-todaystidbit">
           <div class="loading"><div class="spinner"></div></div>
         </div>
       </div>
