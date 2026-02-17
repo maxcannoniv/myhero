@@ -421,7 +421,7 @@ function openCharacterPopup(characterName) {
       var c = result.character;
       currentPopupCharacter = c.character_name;
       document.getElementById('charPopupName').textContent = c.character_name;
-      document.getElementById('charPopupClass').textContent = c.class || '';
+      document.getElementById('charPopupRole').textContent = c.faction_role || '';
       document.getElementById('charPopupFaction').textContent = c.faction || 'Independent';
       document.getElementById('charPopupBio').textContent = c.bio || '';
       // Show profile photo if one exists, otherwise fall back to first initial
