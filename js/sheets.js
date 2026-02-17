@@ -97,3 +97,29 @@ async function sheetsGetFeed(feedName) {
 async function sheetsCreatePost(postData) {
   return await callAppsScript('createPost', postData);
 }
+
+// --- Messaging ---
+
+async function sheetsGetInbox(heroName) {
+  return await callAppsScript('getInbox', { heroName: heroName });
+}
+
+async function sheetsGetThread(heroName, contactName) {
+  return await callAppsScript('getThread', { heroName: heroName, contactName: contactName });
+}
+
+async function sheetsSendMessage(from, to, body) {
+  return await callAppsScript('sendMessage', { from: from, to: to, body: body });
+}
+
+async function sheetsGetContacts(heroName) {
+  return await callAppsScript('getContacts', { heroName: heroName });
+}
+
+async function sheetsAddContact(heroName, contactName) {
+  return await callAppsScript('addContact', { heroName: heroName, contactName: contactName });
+}
+
+async function sheetsGetCharacter(characterName) {
+  return await callAppsScript('getCharacter', { characterName: characterName });
+}

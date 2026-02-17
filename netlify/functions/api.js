@@ -224,6 +224,201 @@ async function handleCreatePost(data) {
 }
 
 // -----------------------------------------------
+// MESSAGING
+// -----------------------------------------------
+
+// Get inbox — list of unique conversations for a player
+// Returns the most recent message from each conversation
+async function handleGetInbox(data) {
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Messages');
+  var allMessages = rowsToObjects(rows);
+  var heroName = data.heroName;
+
+  // Find all messages to or from this player
+  var myMessages = allMessages.filter(function(msg) {
+    return msg.from_character === heroName || msg.to_character === heroName;
+  });
+
+  // Group by the other person in the conversation
+  var threads = {};
+  myMessages.forEach(function(msg) {
+    var otherPerson = msg.from_character === heroName ? msg.to_character : msg.from_character;
+    if (!threads[otherPerson]) {
+      threads[otherPerson] = { contact: otherPerson, lastMessage: msg, unread: 0 };
+    }
+    // Keep the most recent message
+    if (new Date(msg.timestamp) > new Date(threads[otherPerson].lastMessage.timestamp)) {
+      threads[otherPerson].lastMessage = msg;
+    }
+    // Count unread messages sent TO this player
+    if (msg.to_character === heroName && msg.read !== 'yes') {
+      threads[otherPerson].unread++;
+    }
+  });
+
+  // Convert to array and sort by most recent
+  var threadList = Object.values(threads);
+  threadList.sort(function(a, b) {
+    return new Date(b.lastMessage.timestamp) - new Date(a.lastMessage.timestamp);
+  });
+
+  return { success: true, threads: threadList };
+}
+
+// Get a full conversation thread between two characters
+async function handleGetThread(data) {
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Messages');
+  var allMessages = rowsToObjects(rows);
+  var heroName = data.heroName;
+  var contactName = data.contactName;
+
+  var thread = allMessages.filter(function(msg) {
+    return (msg.from_character === heroName && msg.to_character === contactName) ||
+           (msg.from_character === contactName && msg.to_character === heroName);
+  });
+
+  // Sort oldest first (conversation order)
+  thread.sort(function(a, b) {
+    return new Date(a.timestamp) - new Date(b.timestamp);
+  });
+
+  // Mark unread messages as read
+  // Find row indices of unread messages TO this player
+  var headers = rows[0];
+  var fromCol = headers.indexOf('from_character');
+  var toCol = headers.indexOf('to_character');
+  var readCol = headers.indexOf('read');
+
+  var updates = [];
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][fromCol] === contactName &&
+        rows[i][toCol] === heroName &&
+        rows[i][readCol] !== 'yes') {
+      updates.push({
+        range: 'Messages!' + String.fromCharCode(65 + readCol) + (i + 1),
+        values: [['yes']]
+      });
+    }
+  }
+
+  if (updates.length > 0) {
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        valueInputOption: 'RAW',
+        data: updates
+      }
+    });
+  }
+
+  return { success: true, messages: thread };
+}
+
+// Send a message
+async function handleSendMessage(data) {
+  var sheets = getSheets();
+
+  if (!data.from || !data.to || !data.body) {
+    return { success: false, error: 'Missing required fields.' };
+  }
+
+  var now = new Date();
+  var timestamp = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + ' ' +
+    String(now.getHours()).padStart(2, '0') + ':' +
+    String(now.getMinutes()).padStart(2, '0');
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Messages!A:A',
+    valueInputOption: 'RAW',
+    requestBody: { values: [[data.from, data.to, data.body, timestamp, 'no']] }
+  });
+
+  // Auto-add to contacts if not already there
+  var contactRows = await readTab(sheets, 'Contacts');
+  var alreadyContact = false;
+  for (var i = 1; i < contactRows.length; i++) {
+    if (contactRows[i][0] === data.from && contactRows[i][1] === data.to) {
+      alreadyContact = true;
+      break;
+    }
+  }
+  if (!alreadyContact) {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Contacts!A:A',
+      valueInputOption: 'RAW',
+      requestBody: { values: [[data.from, data.to]] }
+    });
+  }
+
+  return { success: true };
+}
+
+// Get a player's contacts list
+async function handleGetContacts(data) {
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Contacts');
+  var heroName = data.heroName;
+
+  var contacts = [];
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === heroName) {
+      contacts.push(rows[i][1]);
+    }
+  }
+
+  return { success: true, contacts: contacts };
+}
+
+// Add a contact
+async function handleAddContact(data) {
+  var sheets = getSheets();
+
+  if (!data.heroName || !data.contactName) {
+    return { success: false, error: 'Missing required fields.' };
+  }
+
+  // Check if already a contact
+  var rows = await readTab(sheets, 'Contacts');
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === data.heroName && rows[i][1] === data.contactName) {
+      return { success: true, alreadyExists: true };
+    }
+  }
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Contacts!A:A',
+    valueInputOption: 'RAW',
+    requestBody: { values: [[data.heroName, data.contactName]] }
+  });
+
+  return { success: true };
+}
+
+// Get a character's public profile
+async function handleGetCharacter(data) {
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Characters');
+  var allCharacters = rowsToObjects(rows);
+
+  var character = allCharacters.find(function(c) {
+    return c.character_name === data.characterName && c.profile_visible === 'yes';
+  });
+
+  if (!character) {
+    return { success: false, error: 'Character not found.' };
+  }
+
+  return { success: true, character: character };
+}
+
+// -----------------------------------------------
 // MAIN HANDLER — routes requests to the right function
 // -----------------------------------------------
 
@@ -259,6 +454,12 @@ exports.handler = async function(event) {
     else if (action === 'register') result = await handleRegister(data);
     else if (action === 'getFeed') result = await handleGetFeed(data);
     else if (action === 'createPost') result = await handleCreatePost(data);
+    else if (action === 'getInbox') result = await handleGetInbox(data);
+    else if (action === 'getThread') result = await handleGetThread(data);
+    else if (action === 'sendMessage') result = await handleSendMessage(data);
+    else if (action === 'getContacts') result = await handleGetContacts(data);
+    else if (action === 'addContact') result = await handleAddContact(data);
+    else if (action === 'getCharacter') result = await handleGetCharacter(data);
     else result = { success: false, error: 'Unknown action: ' + action };
 
     return {

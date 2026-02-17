@@ -49,6 +49,11 @@ appIcons.forEach(function(icon) {
         loadFeed(appName);
         feedsLoaded[appName] = true;
       }
+
+      // Load inbox when Messages is opened
+      if (appName === 'messages') {
+        loadInbox();
+      }
     }
   });
 });
@@ -140,6 +145,8 @@ function loadFeed(feedName) {
         var el = renderPost(feedName, post);
         container.appendChild(el);
       });
+      // Make character names clickable
+      makeNamesClickable(container);
     } else {
       container.innerHTML = '<div class="feed-empty">No posts yet.</div>';
     }
@@ -235,6 +242,275 @@ function renderBliink(post) {
 
   card.innerHTML = html;
   return card;
+}
+
+// -----------------------------------------------
+// MESSAGES — Inbox, Threads, Contacts
+// -----------------------------------------------
+
+var currentThreadContact = null;
+
+// Load inbox when Messages app is opened
+function loadInbox() {
+  var heroName = (session && session.hero) ? session.hero.hero_name : null;
+  if (!heroName) return;
+
+  var inboxList = document.getElementById('inboxList');
+  inboxList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  sheetsGetInbox(heroName).then(function(result) {
+    inboxList.innerHTML = '';
+    if (result.success && result.threads && result.threads.length > 0) {
+      result.threads.forEach(function(thread) {
+        var item = document.createElement('div');
+        item.className = 'msg-inbox-item';
+        if (thread.unread > 0) item.classList.add('msg-unread');
+
+        var preview = thread.lastMessage.body || '';
+        if (preview.length > 50) preview = preview.substring(0, 50) + '...';
+
+        item.innerHTML =
+          '<div class="msg-inbox-name">' + thread.contact +
+          (thread.unread > 0 ? ' <span class="msg-unread-badge">' + thread.unread + '</span>' : '') +
+          '</div>' +
+          '<div class="msg-inbox-preview">' + preview + '</div>' +
+          '<div class="msg-inbox-time">' + formatDate(thread.lastMessage.timestamp) + '</div>';
+
+        item.addEventListener('click', function() {
+          openThread(thread.contact);
+        });
+
+        inboxList.appendChild(item);
+      });
+    } else {
+      inboxList.innerHTML = '<div class="msg-empty">No messages yet. Discover characters through feeds to start a conversation.</div>';
+    }
+  });
+}
+
+// Open a conversation thread
+function openThread(contactName) {
+  currentThreadContact = contactName;
+  var heroName = session.hero.hero_name;
+
+  // Switch views
+  document.getElementById('messagesInbox').style.display = 'none';
+  document.getElementById('messagesContacts').style.display = 'none';
+  document.getElementById('messagesThread').style.display = 'block';
+  document.getElementById('messagesTitlebar').textContent = contactName;
+
+  var threadDiv = document.getElementById('threadMessages');
+  threadDiv.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  sheetsGetThread(heroName, contactName).then(function(result) {
+    threadDiv.innerHTML = '';
+    if (result.success && result.messages) {
+      result.messages.forEach(function(msg) {
+        var bubble = document.createElement('div');
+        bubble.className = 'msg-bubble';
+        if (msg.from_character === heroName) {
+          bubble.classList.add('msg-sent');
+        } else {
+          bubble.classList.add('msg-received');
+        }
+        bubble.innerHTML =
+          '<div class="msg-bubble-text">' + msg.body + '</div>' +
+          '<div class="msg-bubble-time">' + formatDate(msg.timestamp) + '</div>';
+        threadDiv.appendChild(bubble);
+      });
+      // Scroll to bottom
+      threadDiv.scrollTop = threadDiv.scrollHeight;
+    }
+  });
+}
+
+// Back to inbox
+document.getElementById('threadBackBtn').addEventListener('click', function() {
+  document.getElementById('messagesThread').style.display = 'none';
+  document.getElementById('messagesInbox').style.display = 'block';
+  document.getElementById('messagesTitlebar').textContent = 'Messages';
+  currentThreadContact = null;
+  loadInbox();
+});
+
+// Send a message
+document.getElementById('msgSendBtn').addEventListener('click', function() {
+  var input = document.getElementById('msgReplyInput');
+  var body = input.value.trim();
+  if (!body || !currentThreadContact) return;
+
+  var heroName = session.hero.hero_name;
+  var sendBtn = document.getElementById('msgSendBtn');
+  sendBtn.disabled = true;
+
+  sheetsSendMessage(heroName, currentThreadContact, body).then(function(result) {
+    sendBtn.disabled = false;
+    if (result.success) {
+      input.value = '';
+      openThread(currentThreadContact);
+    }
+  });
+});
+
+// Send on Enter key
+document.getElementById('msgReplyInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    document.getElementById('msgSendBtn').click();
+  }
+});
+
+// New message — show contacts
+document.getElementById('msgNewBtn').addEventListener('click', function() {
+  var heroName = session.hero.hero_name;
+  document.getElementById('messagesInbox').style.display = 'none';
+  document.getElementById('messagesContacts').style.display = 'block';
+  document.getElementById('messagesTitlebar').textContent = 'New Message';
+
+  var contactsList = document.getElementById('contactsList');
+  contactsList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  sheetsGetContacts(heroName).then(function(result) {
+    contactsList.innerHTML = '';
+    if (result.success && result.contacts && result.contacts.length > 0) {
+      document.getElementById('noContactsMsg').style.display = 'none';
+      result.contacts.forEach(function(name) {
+        var item = document.createElement('div');
+        item.className = 'msg-contact-item';
+        item.textContent = name;
+        item.addEventListener('click', function() {
+          document.getElementById('messagesContacts').style.display = 'none';
+          openThread(name);
+        });
+        contactsList.appendChild(item);
+      });
+    } else {
+      document.getElementById('noContactsMsg').style.display = 'block';
+    }
+  });
+});
+
+// Back from contacts
+document.getElementById('contactsBackBtn').addEventListener('click', function() {
+  document.getElementById('messagesContacts').style.display = 'none';
+  document.getElementById('messagesInbox').style.display = 'block';
+  document.getElementById('messagesTitlebar').textContent = 'Messages';
+});
+
+// -----------------------------------------------
+// CHARACTER PROFILE POPUP
+// -----------------------------------------------
+
+var charPopupOverlay = document.getElementById('charPopupOverlay');
+var currentPopupCharacter = null;
+
+function openCharacterPopup(characterName) {
+  var heroName = (session && session.hero) ? session.hero.hero_name : null;
+  // Don't open popup for yourself
+  if (characterName === heroName) return;
+
+  charPopupOverlay.style.display = 'flex';
+  document.getElementById('charPopupName').textContent = 'Loading...';
+  document.getElementById('charPopupClass').textContent = '';
+  document.getElementById('charPopupFaction').textContent = '';
+  document.getElementById('charPopupBio').textContent = '';
+  document.getElementById('charPopupStatus').textContent = '';
+  document.getElementById('charPopupAvatar').textContent = '?';
+
+  sheetsGetCharacter(characterName).then(function(result) {
+    if (result.success && result.character) {
+      var c = result.character;
+      currentPopupCharacter = c.character_name;
+      document.getElementById('charPopupName').textContent = c.character_name;
+      document.getElementById('charPopupClass').textContent = c.class || '';
+      document.getElementById('charPopupFaction').textContent = c.faction || 'Independent';
+      document.getElementById('charPopupBio').textContent = c.bio || '';
+      document.getElementById('charPopupAvatar').textContent = c.character_name.charAt(0).toUpperCase();
+    } else {
+      document.getElementById('charPopupName').textContent = characterName;
+      document.getElementById('charPopupBio').textContent = 'No profile found.';
+      currentPopupCharacter = characterName;
+    }
+  });
+}
+
+// Close popup
+document.getElementById('charPopupClose').addEventListener('click', function() {
+  charPopupOverlay.style.display = 'none';
+  currentPopupCharacter = null;
+});
+
+charPopupOverlay.addEventListener('click', function(e) {
+  if (e.target === charPopupOverlay) {
+    charPopupOverlay.style.display = 'none';
+    currentPopupCharacter = null;
+  }
+});
+
+// Send message from popup
+document.getElementById('charSendMsgBtn').addEventListener('click', function() {
+  if (!currentPopupCharacter) return;
+  charPopupOverlay.style.display = 'none';
+
+  // Open messages app and thread
+  var allViews = document.querySelectorAll('.app-view');
+  allViews.forEach(function(v) { v.classList.remove('active'); });
+  homeScreen.classList.remove('active');
+  document.getElementById('app-messages').classList.add('active');
+
+  openThread(currentPopupCharacter);
+});
+
+// Add contact from popup
+document.getElementById('charAddContactBtn').addEventListener('click', function() {
+  if (!currentPopupCharacter) return;
+  var heroName = session.hero.hero_name;
+  var statusEl = document.getElementById('charPopupStatus');
+
+  sheetsAddContact(heroName, currentPopupCharacter).then(function(result) {
+    if (result.success) {
+      if (result.alreadyExists) {
+        statusEl.textContent = 'Already in your contacts.';
+      } else {
+        statusEl.textContent = 'Added to contacts!';
+      }
+    }
+  });
+});
+
+// -----------------------------------------------
+// CLICKABLE CHARACTER NAMES IN FEEDS
+// -----------------------------------------------
+
+// Make posted_by names clickable in feed posts
+// Called after feeds render — wraps character names in clickable spans
+function makeNamesClickable(container) {
+  // Find all elements with character names
+  var nameEls = container.querySelectorAll('.bl-username, .mh-poster, .dd-dateline');
+  // For Bliink, the username in the header is the clickable one
+  var bliinkHeaders = container.querySelectorAll('.bl-header .bl-username');
+  bliinkHeaders.forEach(function(el) {
+    var name = el.textContent.trim();
+    if (name && name !== 'Anonymous') {
+      el.classList.add('clickable-name');
+      el.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openCharacterPopup(name);
+      });
+    }
+  });
+
+  // For myHERO poster names
+  var mhPosters = container.querySelectorAll('.mh-poster');
+  mhPosters.forEach(function(el) {
+    var name = el.textContent.trim();
+    if (name && name !== 'Anonymous' && name !== 'myHERO' && name !== 'Daily Dollar') {
+      el.classList.add('clickable-name');
+      el.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openCharacterPopup(name);
+      });
+    }
+  });
 }
 
 // -----------------------------------------------

@@ -158,14 +158,40 @@
     <div class="app-view" id="app-messages">
       <div class="app-titlebar">
         <button class="app-home-btn" data-home>&larr; Home</button>
-        <span class="app-titlebar-name">Messages</span>
+        <span class="app-titlebar-name" id="messagesTitlebar">Messages</span>
       </div>
-      <div class="app-body">
-        <div class="placeholder-content">
-          <div class="placeholder-icon">&#9993;</div>
-          <h3>Coming Soon</h3>
-          <p>Send and receive private messages with other heroes and city contacts.</p>
+      <div class="app-body app-body-messages">
+
+        <!-- INBOX VIEW (list of conversations) -->
+        <div id="messagesInbox">
+          <div class="msg-new-btn-bar">
+            <button class="msg-new-btn" id="msgNewBtn">+ New Message</button>
+          </div>
+          <div id="inboxList">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
         </div>
+
+        <!-- CONTACTS PICKER (for new message) -->
+        <div id="messagesContacts" style="display: none;">
+          <div class="msg-section-header">Your Contacts</div>
+          <div id="contactsList"></div>
+          <div class="msg-no-contacts" id="noContactsMsg" style="display: none;">
+            No contacts yet. Discover characters through feeds and apps.
+          </div>
+          <button class="msg-back-btn" id="contactsBackBtn">&larr; Back to Inbox</button>
+        </div>
+
+        <!-- THREAD VIEW (conversation with one person) -->
+        <div id="messagesThread" style="display: none;">
+          <button class="msg-back-btn" id="threadBackBtn">&larr; Back to Inbox</button>
+          <div id="threadMessages"></div>
+          <div class="msg-reply-bar">
+            <input type="text" class="msg-reply-input" id="msgReplyInput" placeholder="Type a message..." maxlength="500">
+            <button class="msg-send-btn" id="msgSendBtn">Send</button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -244,6 +270,27 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- Character Profile Popup (accessible from anywhere) -->
+  <div class="char-popup-overlay" id="charPopupOverlay" style="display: none;">
+    <div class="char-popup">
+      <button class="char-popup-close" id="charPopupClose">&times;</button>
+      <div class="char-popup-header">
+        <div class="char-popup-avatar" id="charPopupAvatar">?</div>
+        <div class="char-popup-info">
+          <h3 id="charPopupName">Loading...</h3>
+          <p id="charPopupClass"></p>
+          <p id="charPopupFaction"></p>
+        </div>
+      </div>
+      <p class="char-popup-bio" id="charPopupBio"></p>
+      <div class="char-popup-actions">
+        <button class="btn btn-primary char-popup-btn" id="charSendMsgBtn">Send Message</button>
+        <button class="btn btn-secondary char-popup-btn" id="charAddContactBtn">Add to Contacts</button>
+      </div>
+      <div class="char-popup-status" id="charPopupStatus"></div>
+    </div>
   </div>
 
   <script src="js/sheets.js"></script>
