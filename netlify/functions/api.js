@@ -401,6 +401,36 @@ async function handleAddContact(data) {
   return { success: true };
 }
 
+// Get a faction's public profile + member list if members are public
+async function handleGetFaction(data) {
+  var sheets = getSheets();
+  var factionRows = await readTab(sheets, 'Factions');
+  var factions = rowsToObjects(factionRows);
+
+  var faction = factions.find(function(f) {
+    return f.faction_name === data.factionName;
+  });
+
+  if (!faction) {
+    return { success: false, error: 'Faction not found.' };
+  }
+
+  var result = { success: true, faction: faction };
+
+  // Only include member list if the faction has members_public = yes
+  if (faction.members_public === 'yes') {
+    var charRows = await readTab(sheets, 'Characters');
+    var characters = rowsToObjects(charRows);
+    result.members = characters
+      .filter(function(c) {
+        return c.faction === data.factionName && c.profile_visible === 'yes';
+      })
+      .map(function(c) { return c.character_name; });
+  }
+
+  return result;
+}
+
 // Get a character's public profile
 async function handleGetCharacter(data) {
   var sheets = getSheets();
@@ -460,6 +490,7 @@ exports.handler = async function(event) {
     else if (action === 'getContacts') result = await handleGetContacts(data);
     else if (action === 'addContact') result = await handleAddContact(data);
     else if (action === 'getCharacter') result = await handleGetCharacter(data);
+    else if (action === 'getFaction') result = await handleGetFaction(data);
     else result = { success: false, error: 'Unknown action: ' + action };
 
     return {

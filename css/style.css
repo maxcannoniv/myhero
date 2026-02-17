@@ -1633,6 +1633,118 @@ select.form-input option {
   min-height: 1.2em;
 }
 
+/* ============================================
+   FACTION POPUP
+   ============================================ */
+.faction-popup-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 110; /* above character popup */
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.faction-popup {
+  background: var(--bg-panel);
+  border: var(--border-thick) solid var(--border-comic);
+  border-radius: 12px;
+  box-shadow: 6px 6px 0px var(--border-comic);
+  max-width: 420px;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.faction-popup-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: rgba(255,255,255,0.6);
+  z-index: 10;
+  transition: color 0.15s;
+}
+
+.faction-popup-close:hover {
+  color: var(--accent-red);
+}
+
+/* Dark banner header with faction name */
+.faction-popup-header {
+  background: #0d0d0d;
+  border-bottom: var(--border-thick) solid var(--border-comic);
+  padding: 28px 24px 20px;
+}
+
+.faction-popup-name {
+  font-family: var(--font-comic);
+  font-size: 1.6rem;
+  color: var(--accent-yellow);
+  line-height: 1.1;
+  letter-spacing: 1px;
+}
+
+/* Body section below header */
+.faction-popup-body {
+  padding: 20px 24px 24px;
+}
+
+.faction-popup-desc {
+  font-size: 0.88rem;
+  color: var(--text-light);
+  line-height: 1.65;
+  margin-bottom: 16px;
+}
+
+.faction-popup-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.faction-popup-leader-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.faction-popup-leader-name {
+  font-size: 0.95rem;
+  color: var(--accent-yellow);
+}
+
+.faction-popup-members-section {
+  margin-top: 4px;
+}
+
+.faction-popup-member {
+  padding: 5px 0;
+  font-size: 0.88rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.faction-popup-member:last-child {
+  border-bottom: none;
+}
+
+.faction-popup-status {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
 /* Clickable character names in feeds */
 .clickable-name {
   cursor: pointer;

@@ -321,6 +321,28 @@
     </div>
   </div>
 
+  <!-- Faction Popup (opens when a faction name is clicked) -->
+  <div class="faction-popup-overlay" id="factionPopupOverlay" style="display: none;">
+    <div class="faction-popup">
+      <button class="faction-popup-close" id="factionPopupClose">&times;</button>
+      <div class="faction-popup-header">
+        <div class="faction-popup-name" id="factionPopupName">Loading...</div>
+      </div>
+      <div class="faction-popup-body">
+        <p class="faction-popup-desc" id="factionPopupDesc"></p>
+        <div class="faction-popup-leader-row" id="factionPopupLeaderRow" style="display: none;">
+          <span class="faction-popup-label">Leader</span>
+          <span class="faction-popup-leader-name clickable-name" id="factionPopupLeader"></span>
+        </div>
+        <div class="faction-popup-members-section" id="factionPopupMembersSection" style="display: none;">
+          <div class="faction-popup-label">Members</div>
+          <div id="factionPopupMemberList"></div>
+        </div>
+        <div class="faction-popup-status" id="factionPopupStatus"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="js/sheets.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/dashboard.js"></script>

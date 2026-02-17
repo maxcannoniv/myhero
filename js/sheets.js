@@ -123,3 +123,7 @@ async function sheetsAddContact(heroName, contactName) {
 async function sheetsGetCharacter(characterName) {
   return await callAppsScript('getCharacter', { characterName: characterName });
 }
+
+async function sheetsGetFaction(factionName) {
+  return await callAppsScript('getFaction', { factionName: factionName });
+}

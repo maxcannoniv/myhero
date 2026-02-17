@@ -461,7 +461,13 @@ function openCharacterPopup(characterName) {
       currentPopupCharacter = c.character_name;
       document.getElementById('charPopupName').textContent = c.character_name;
       document.getElementById('charPopupRole').textContent = c.faction_role || '';
-      document.getElementById('charPopupFaction').textContent = c.faction || 'Independent';
+      // Make faction name a clickable link if one exists
+      var factionEl = document.getElementById('charPopupFaction');
+      if (c.faction) {
+        factionEl.innerHTML = '<span class="clickable-name" data-faction="' + c.faction + '">' + c.faction + '</span>';
+      } else {
+        factionEl.textContent = 'Independent';
+      }
       document.getElementById('charPopupBio').textContent = c.bio || '';
       // Show profile photo if one exists, otherwise fall back to first initial
       var avatarEl = document.getElementById('charPopupAvatar');
@@ -488,6 +494,16 @@ charPopupOverlay.addEventListener('click', function(e) {
   if (e.target === charPopupOverlay) {
     charPopupOverlay.style.display = 'none';
     currentPopupCharacter = null;
+  }
+});
+
+// If a faction name is clicked inside the char popup, close it and open the faction popup
+document.querySelector('.char-popup').addEventListener('click', function(e) {
+  if (e.target.dataset.faction) {
+    e.stopPropagation();
+    charPopupOverlay.style.display = 'none';
+    currentPopupCharacter = null;
+    openFactionPopup(e.target.dataset.faction);
   }
 });
 
@@ -520,6 +536,73 @@ document.getElementById('charAddContactBtn').addEventListener('click', function(
       }
     }
   });
+});
+
+// -----------------------------------------------
+// FACTION POPUP
+// -----------------------------------------------
+
+var factionPopupOverlay = document.getElementById('factionPopupOverlay');
+
+function openFactionPopup(factionName) {
+  factionPopupOverlay.style.display = 'flex';
+  document.getElementById('factionPopupName').textContent = 'Loading...';
+  document.getElementById('factionPopupDesc').textContent = '';
+  document.getElementById('factionPopupStatus').textContent = '';
+  document.getElementById('factionPopupLeaderRow').style.display = 'none';
+  document.getElementById('factionPopupMembersSection').style.display = 'none';
+
+  sheetsGetFaction(factionName).then(function(result) {
+    if (result.success && result.faction) {
+      var f = result.faction;
+      document.getElementById('factionPopupName').textContent = f.faction_name;
+      document.getElementById('factionPopupDesc').textContent = f.description || '';
+
+      // Show leader as a clickable name if one exists
+      if (f.leader) {
+        var leaderEl = document.getElementById('factionPopupLeader');
+        leaderEl.textContent = f.leader;
+        leaderEl.dataset.character = f.leader;
+        document.getElementById('factionPopupLeaderRow').style.display = 'flex';
+      }
+
+      // Show member list if the faction has members_public = yes
+      if (result.members && result.members.length > 0) {
+        var memberList = document.getElementById('factionPopupMemberList');
+        memberList.innerHTML = '';
+        result.members.forEach(function(name) {
+          var item = document.createElement('div');
+          item.className = 'faction-popup-member';
+          item.innerHTML = '<span class="clickable-name" data-character="' + name + '">' + name + '</span>';
+          memberList.appendChild(item);
+        });
+        document.getElementById('factionPopupMembersSection').style.display = 'block';
+      }
+    } else {
+      document.getElementById('factionPopupName').textContent = factionName;
+      document.getElementById('factionPopupStatus').textContent = 'No information available.';
+    }
+  });
+}
+
+// Close faction popup
+document.getElementById('factionPopupClose').addEventListener('click', function() {
+  factionPopupOverlay.style.display = 'none';
+});
+
+factionPopupOverlay.addEventListener('click', function(e) {
+  if (e.target === factionPopupOverlay) {
+    factionPopupOverlay.style.display = 'none';
+  }
+});
+
+// Clicking a character name inside the faction popup opens their character popup
+document.querySelector('.faction-popup').addEventListener('click', function(e) {
+  if (e.target.dataset.character) {
+    e.stopPropagation();
+    factionPopupOverlay.style.display = 'none';
+    openCharacterPopup(e.target.dataset.character);
+  }
 });
 
 // -----------------------------------------------
