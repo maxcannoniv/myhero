@@ -1,8 +1,12 @@
-// Setup script — creates Reputation tab and sets all players to neutral with all factions
+// Reputation sync script — adds missing player×faction rows, never overwrites existing ones.
 // Run with: node setup-reputation.js
 //
-// Reads current Players and Factions tabs, then writes one row per player×faction = neutral.
-// Safe to re-run — clears and rewrites the Reputation tab each time.
+// When to run:
+//   - After adding a new faction to the Factions tab
+//   - After adding a player directly to the Players tab (bypassing registration)
+//   - Any time you want to make sure the Reputation tab is complete
+//
+// Safe to run anytime — custom reputation values are preserved.
 
 const { google } = require('googleapis');
 const path = require('path');
@@ -35,50 +39,71 @@ async function main() {
   });
   var sheets = google.sheets({ version: 'v4', auth });
 
-  // --- Read existing tab list ---
+  // --- Create Reputation tab if it doesn't exist yet ---
   var spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
   var existingTabs = spreadsheet.data.sheets.map(function(s) { return s.properties.title; });
 
-  // --- Create Reputation tab if it doesn't exist ---
   if (existingTabs.indexOf('Reputation') === -1) {
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
       requestBody: { requests: [{ addSheet: { properties: { title: 'Reputation' } } }] }
     });
+    // Write the header row on a fresh tab
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Reputation!A1',
+      valueInputOption: 'RAW',
+      requestBody: { values: [['hero_name', 'faction_name', 'reputation']] }
+    });
     console.log('Created Reputation tab.');
-  } else {
-    console.log('Reputation tab already exists — clearing and rewriting.');
   }
 
-  // --- Read all players ---
+  // --- Read players, factions, and existing reputation rows ---
   var playerRows = await readTab(sheets, 'Players');
   var players = rowsToObjects(playerRows);
   var heroNames = players.map(function(p) { return p.hero_name; }).filter(Boolean);
-  console.log('Players found: ' + heroNames.join(', '));
 
-  // --- Read all factions ---
   var factionRows = await readTab(sheets, 'Factions');
   var factions = rowsToObjects(factionRows);
   var factionNames = factions.map(function(f) { return f.faction_name; }).filter(Boolean);
-  console.log('Factions found: ' + factionNames.join(', '));
 
-  // --- Build rows: one per player × faction, all neutral ---
-  var rows = [['hero_name', 'faction_name', 'reputation']];
+  var repRows = await readTab(sheets, 'Reputation');
+  var existing = new Set();
+  if (repRows.length > 1) {
+    rowsToObjects(repRows).forEach(function(r) {
+      if (r.hero_name && r.faction_name) {
+        existing.add(r.hero_name + '|' + r.faction_name);
+      }
+    });
+  }
+
+  console.log('Players: ' + heroNames.join(', '));
+  console.log('Factions: ' + factionNames.join(', '));
+  console.log('Existing reputation rows: ' + existing.size);
+
+  // --- Find missing combinations and add them as neutral ---
+  var newRows = [];
   heroNames.forEach(function(heroName) {
     factionNames.forEach(function(factionName) {
-      rows.push([heroName, factionName, 'neutral']);
+      if (!existing.has(heroName + '|' + factionName)) {
+        newRows.push([heroName, factionName, 'neutral']);
+      }
     });
   });
 
-  // --- Write to Reputation tab (overwrites everything) ---
-  await sheets.spreadsheets.values.update({
+  if (newRows.length === 0) {
+    console.log('All reputation rows are present. Nothing to add.');
+    return;
+  }
+
+  await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Reputation!A1',
+    range: 'Reputation!A:A',
     valueInputOption: 'RAW',
-    requestBody: { values: rows },
+    requestBody: { values: newRows }
   });
 
-  console.log('Done. Wrote ' + (rows.length - 1) + ' reputation rows (' + heroNames.length + ' players × ' + factionNames.length + ' factions).');
+  console.log('Added ' + newRows.length + ' missing reputation rows (all set to neutral).');
 }
 
 main().catch(function(err) {

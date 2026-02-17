@@ -144,7 +144,12 @@ Players don't know which characters are NPCs and which are real players. All cha
 
 **Tab: Characters** — All characters (player + NPC). Columns: character_name, type (player/npc), username (blank for NPCs), class, bio, faction, faction_role, profile_visible, asset_slug. NPCs start light (no stats), stats added later if needed. `faction_role` is a short description of the character's position within their faction (e.g. "Owner of Mongrel's Towing", "Private Eye"). `asset_slug` is a lowercase identifier (e.g. `bloodhound`) used to locate all assets for that character in `assets/characters/{slug}/`.
 **Tab: Factions** — Columns: faction_name, description, power_multiplier, leader, members_public (yes/no — controls whether the member list is shown in the faction popup)
-**Tab: Reputation** — Columns: hero_name, faction_name, reputation (hostile/negative/neutral/positive/ally). One row per player per faction. DM-managed. Will control visibility features in the future.
+**Tab: Reputation** — Columns: hero_name, faction_name, reputation (hostile/negative/neutral/positive/ally). One row per player per faction. Will control visibility features in the future.
+
+**Reputation maintenance routines:**
+- **New player registers** → handled automatically by `handleRegister` in `api.js`. Neutral rows are added for all factions at signup. No manual action needed.
+- **New faction added** (DM adds to Factions tab) → run `node setup-reputation.js` after adding. Script is additive — only fills missing rows, never overwrites custom values.
+- **New character added** → no action needed. Reputation is player×faction only; NPC characters don't get reputation rows.
 **Tab: Inventory** — Per-player items and notes. Columns: username, item_name, type (item/note), content_id (for notes), description
 **Tab: NoteContent** — Secret content for notes. Columns: content_id, title, body_text, image_url. Only loaded when a player with the note clicks it.
 **Tab: Feeds** — All feed posts (all 4 feeds in one tab). Columns: feed, posted_by, posted_by_type (character/faction/anonymous), title, image_url, body, timestamp, visible (yes/no)

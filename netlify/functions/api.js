@@ -156,6 +156,9 @@ async function handleRegister(data) {
     requestBody: { values: [newRow] }
   });
 
+  // Auto-create neutral reputation rows for this new player against all factions
+  await addReputationRowsForPlayer(sheets, data.heroName);
+
   // Build hero object to return
   var hero = {};
   for (var k = 0; k < headers.length; k++) {
@@ -165,6 +168,41 @@ async function handleRegister(data) {
   }
 
   return { success: true, hero: hero };
+}
+
+// Add neutral reputation rows for a new player against every faction.
+// Called automatically on registration. Skips factions the player already has a row for.
+async function addReputationRowsForPlayer(sheets, heroName) {
+  var factionRows = await readTab(sheets, 'Factions');
+  if (factionRows.length < 2) return;
+  var factions = rowsToObjects(factionRows);
+
+  // Check what reputation rows already exist for this player
+  var repRows = await readTab(sheets, 'Reputation');
+  var existing = new Set();
+  if (repRows.length > 1) {
+    var repObjects = rowsToObjects(repRows);
+    repObjects.forEach(function(r) {
+      if (r.hero_name === heroName) existing.add(r.faction_name);
+    });
+  }
+
+  // Append one neutral row per faction that doesn't already have an entry
+  var newRows = [];
+  factions.forEach(function(f) {
+    if (f.faction_name && !existing.has(f.faction_name)) {
+      newRows.push([heroName, f.faction_name, 'neutral']);
+    }
+  });
+
+  if (newRows.length > 0) {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Reputation!A:A',
+      valueInputOption: 'RAW',
+      requestBody: { values: newRows }
+    });
+  }
 }
 
 async function handleGetFeed(data) {
