@@ -174,7 +174,6 @@ function renderStreetview(post) {
     html += '<img class="sv-image" src="' + post.image_url + '" alt="">';
   }
   html += '<p class="sv-body">' + (post.body || '') + '</p>';
-  html += '<div class="sv-author">— ' + (post.posted_by || 'Anonymous') + '</div>';
 
   article.innerHTML = html;
   return article;

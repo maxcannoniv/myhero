@@ -50,11 +50,11 @@ async function main() {
   var posts = [
     headers,
 
-    // --- STREETVIEW POSTS (Bloodhound's blog) ---
+    // --- STREETVIEW POSTS (anonymous — author is a mystery) ---
     [
       'streetview',
-      'Bloodhound',
-      'character',
+      'Anonymous',
+      'anonymous',
       'Warehouse Fire on 5th — No Accident',
       '',
       'I could smell the accelerant from two blocks out. Kerosene. Cheap stuff — the kind you buy in bulk when you don\'t want a paper trail. The fire department is calling it electrical. They\'re wrong, or they\'re lying. Either way, somebody wanted that warehouse gone. The question is what was inside it. I\'m working on that.',
@@ -63,8 +63,8 @@ async function main() {
     ],
     [
       'streetview',
-      'Bloodhound',
-      'character',
+      'Anonymous',
+      'anonymous',
       'New Faces in the Docks District',
       '',
       'Three new vehicles parked outside the old shipping office on Pier 9. Tinted windows. Out-of-state plates. Nobody moves into the docks quietly unless they have a reason to be quiet. I\'ve got eyes on it. If you see anything, you know how to reach me. Don\'t use your real name.',
