@@ -100,40 +100,39 @@ Hero, Celebrity, Politician, Sleuth, Tycoon, Visionary, Mogul, Mercenary, Champi
 - DM manually updates stats after review (automation later)
 - 3 initial missions, each player picks 1
 
-### Asset System (Character Images)
+### Asset System
 
-Character visual assets are stored in the repo under `assets/characters/`. Each character gets their own subfolder named after their `asset_slug`.
+All visual assets live under `assets/` in the repo. Netlify serves them as static files — no image hosting needed. Run `node sync-assets.js` anytime to check what's wired up vs. missing.
 
 **Folder structure:**
 ```
-assets/characters/
-  bloodhound/
-    profile.png   ← circular avatar shown in character popups
-    cutout.png    ← transparent-background PNG for use in missions, posts, articles
-  mongrel/
-    profile.png
-    cutout.png
-  ...
+assets/
+  characters/{slug}/
+    profile.png     ← headshot shown in character popup
+    cutout.png      ← transparent PNG for Bliink post composing
+  factions/{slug}/
+    banner.png      ← image shown in faction popup
+  places/{slug}/
+    background.png  ← background scene for Bliink posts
 ```
 
+**Slug naming convention:** always lowercase, hyphens for spaces (e.g. `head-honcho`, `mongrels-towing`). Never use capitals or spaces in slug names — folder names must match exactly.
+
 **How it works:**
-- The Characters tab in Sheets has an `asset_slug` column (e.g. `bloodhound`, `mongrel`, `dozer`)
-- The backend returns `asset_slug` with character data automatically (no special backend logic needed — it reads all columns)
-- The frontend builds the image path: `/assets/characters/{slug}/profile.png`
-- If `asset_slug` is blank, the popup falls back to showing the character's first initial
-- Netlify serves all files in the repo as static assets — no image hosting service needed
+- Characters tab in Sheets has `asset_slug` column → frontend builds path `/assets/characters/{slug}/profile.png`
+- Factions tab in Sheets has `asset_slug` column → frontend builds path `/assets/factions/{slug}/banner.png`
+- Places are referenced directly by slug in the Bliink composer — no Sheets column needed
+- If `asset_slug` is blank, popups fall back to a text initial placeholder
 
-**Adding a new character's photos:**
-1. Create `assets/characters/{slug}/` folder
-2. Drop in `profile.png` and/or `cutout.png`
-3. Set `asset_slug` to the slug in the Characters tab of Sheets
-4. Git push — Netlify auto-deploys, images are live immediately
+**Workflow for new assets:**
+1. Drop the file directly into the right subfolder with the correct filename
+2. Set `asset_slug` in the relevant Sheets tab
+3. Git push → Netlify auto-deploys
+4. Run `node sync-assets.js` to verify everything is wired up
 
-**Slug naming convention:** lowercase, no spaces, use hyphens if needed (e.g. `head-honcho`, `mr-smith`)
+**Do NOT use the drop folders** (`Profile Pics/`, `Faction Pics/`, `Place Pics/`). Go directly to the right `assets/` subfolder.
 
-**Asset types (current and planned):**
-- `profile.png` — headshot/avatar for character popup
-- `cutout.png` — transparent background version for compositing into missions, feed posts, articles
+**Characters with assets:** bloodhound, mongrel, dozer, aurora-edge, smiles
 
 ### Player Mystery
 Players don't know which characters are NPCs and which are real players. All characters are presented the same way in feeds and messages.
@@ -143,7 +142,7 @@ Players don't know which characters are NPCs and which are real players. All cha
 **Tab: Players** — Columns: username, password_hash, hero_name, class, might, agility, charm, intuition, commerce, intelligence, followers, bank, positional_authority, clout
 
 **Tab: Characters** — All characters (player + NPC). Columns: character_name, type (player/npc), username (blank for NPCs), class, bio, faction, faction_role, profile_visible, asset_slug. NPCs start light (no stats), stats added later if needed. `faction_role` is a short description of the character's position within their faction (e.g. "Owner of Mongrel's Towing", "Private Eye"). `asset_slug` is a lowercase identifier (e.g. `bloodhound`) used to locate all assets for that character in `assets/characters/{slug}/`.
-**Tab: Factions** — Columns: faction_name, description, power_multiplier, leader, members_public (yes/no — controls whether the member list is shown in the faction popup)
+**Tab: Factions** — Columns: faction_name, description, power_multiplier, leader, members_public (yes/no — controls whether the member list is shown in the faction popup), asset_slug (lowercase slug for faction banner image, e.g. `mongrels-towing`)
 **Tab: Reputation** — Columns: hero_name, faction_name, reputation (hostile/negative/neutral/positive/ally). One row per player per faction. Will control visibility features in the future.
 
 **Reputation maintenance routines:**
