@@ -410,7 +410,7 @@ function openCharacterPopup(characterName) {
 
   charPopupOverlay.style.display = 'flex';
   document.getElementById('charPopupName').textContent = 'Loading...';
-  document.getElementById('charPopupClass').textContent = '';
+  document.getElementById('charPopupRole').textContent = '';
   document.getElementById('charPopupFaction').textContent = '';
   document.getElementById('charPopupBio').textContent = '';
   document.getElementById('charPopupStatus').textContent = '';
