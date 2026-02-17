@@ -12,6 +12,8 @@ function doPost(e) {
     result = handleRegister(data);
   } else if (action === 'getFeed') {
     result = handleGetFeed(data.feed);
+  } else if (action === 'createPost') {
+    result = handleCreatePost(data);
   } else {
     result = { success: false, error: 'Unknown action: ' + action };
   }
@@ -202,4 +204,46 @@ function handleGetFeed(feedName) {
   });
 
   return { success: true, posts: posts };
+}
+
+function handleCreatePost(data) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Feeds');
+
+  if (!sheet) {
+    return { success: false, error: 'Feeds sheet not found.' };
+  }
+
+  // Validate required fields
+  if (!data.feed || !data.posted_by || !data.body) {
+    return { success: false, error: 'Missing required fields.' };
+  }
+
+  // Bliink posts require an image
+  if (data.feed === 'bliink' && !data.image_url) {
+    return { success: false, error: 'Bliink posts require an image.' };
+  }
+
+  // Build the timestamp
+  var now = new Date();
+  var timestamp = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + ' ' +
+    String(now.getHours()).padStart(2, '0') + ':' +
+    String(now.getMinutes()).padStart(2, '0');
+
+  // Append the new post
+  var newRow = [
+    data.feed,
+    data.posted_by,
+    data.posted_by_type || 'character',
+    data.title || '',
+    data.image_url || '',
+    data.body,
+    timestamp,
+    'yes'
+  ];
+
+  sheet.appendRow(newRow);
+
+  return { success: true };
 }

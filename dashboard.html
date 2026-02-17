@@ -91,6 +91,37 @@
         <span class="app-titlebar-name">Bliink</span>
       </div>
       <div class="app-body app-body-bliink">
+
+        <!-- New Post Button -->
+        <div class="bl-new-post-bar">
+          <button class="bl-new-post-btn" id="bliinkNewPostBtn">+ New Post</button>
+        </div>
+
+        <!-- Post Creator (hidden by default) -->
+        <div class="bl-composer" id="bliinkComposer" style="display: none;">
+          <div class="bl-composer-header">New Bliink Post</div>
+
+          <!-- Preset image picker -->
+          <div class="bl-preset-label">Choose an image:</div>
+          <div class="bl-preset-grid" id="bliinkPresetGrid">
+            <!-- Preset images are populated by JS -->
+          </div>
+          <div class="bl-selected-preview" id="bliinkSelectedPreview" style="display: none;">
+            <img id="bliinkPreviewImg" src="" alt="Selected">
+          </div>
+
+          <!-- Caption -->
+          <textarea class="bl-caption-input" id="bliinkCaption" placeholder="Write a caption..." maxlength="280" rows="3"></textarea>
+
+          <!-- Actions -->
+          <div class="bl-composer-actions">
+            <button class="btn btn-secondary bl-cancel-btn" id="bliinkCancelBtn">Cancel</button>
+            <button class="btn btn-primary bl-post-btn" id="bliinkPostBtn">Post</button>
+          </div>
+          <div class="error-msg" id="bliinkPostError"></div>
+        </div>
+
+        <!-- Feed -->
         <div id="feed-bliink">
           <div class="loading"><div class="spinner"></div></div>
         </div>

@@ -1184,6 +1184,135 @@ select.form-input option {
   letter-spacing: 0.5px;
 }
 
+/* --- Bliink Composer (new post UI) --- */
+.bl-new-post-bar {
+  padding: 12px 16px;
+}
+
+.bl-new-post-btn {
+  width: 100%;
+  padding: 10px;
+  font-family: var(--font-comic);
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent-purple);
+  background: rgba(187, 134, 252, 0.1);
+  border: 2px solid var(--accent-purple);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bl-new-post-btn:hover {
+  background: rgba(187, 134, 252, 0.2);
+}
+
+.bl-composer {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 8px;
+}
+
+.bl-composer-header {
+  font-family: var(--font-comic);
+  font-size: 1rem;
+  color: var(--accent-purple);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.bl-preset-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bl-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bl-preset-tile {
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  overflow: hidden;
+  text-align: center;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.bl-preset-tile img {
+  width: 100%;
+  display: block;
+  border-radius: 6px 6px 0 0;
+}
+
+.bl-preset-tile span {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  padding: 4px 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bl-preset-tile:hover {
+  border-color: rgba(187, 134, 252, 0.4);
+}
+
+.bl-preset-tile.selected {
+  border-color: var(--accent-purple);
+  transform: scale(0.95);
+}
+
+.bl-selected-preview {
+  margin-bottom: 12px;
+}
+
+.bl-selected-preview img {
+  width: 100%;
+  border-radius: 6px;
+}
+
+.bl-caption-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 10px 12px;
+  background: #1a1a2e;
+  border: 2px solid #333;
+  border-radius: 6px;
+  color: var(--text-light);
+  resize: none;
+  outline: none;
+  margin-bottom: 12px;
+}
+
+.bl-caption-input:focus {
+  border-color: var(--accent-purple);
+}
+
+.bl-caption-input::placeholder {
+  color: var(--text-muted);
+}
+
+.bl-composer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.bl-composer-actions .btn {
+  flex: 1;
+  font-size: 0.9rem;
+  padding: 8px 16px;
+}
+
 /* --- Loading Spinner --- */
 .loading {
   display: flex;

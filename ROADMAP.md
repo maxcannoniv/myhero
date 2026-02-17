@@ -86,9 +86,12 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 > Social media feed — players post, tag characters, build followers.
 
 - [ ] **6.1 Bliink feed layout** — Social media style feed (think Instagram)
-- [ ] **6.2 Post creation** — Text posts, tagging other characters
-- [ ] **6.3 Interactions** — Likes, comments (simple versions)
-- [ ] **6.4 Save to Sheets** — All posts and interactions recorded
+- [ ] **6.2 Post creation with presets** — Players pick from preset images + write caption
+- [ ] **6.3 Moderation queue** — New posts go to `visible: no`, DM reviews in admin dashboard. Styled as "Bliink Quality Control" in-universe
+- [ ] **6.4 Custom image uploads** — Players can submit their own images (behind moderation wall)
+- [ ] **6.5 Interactions** — Likes, comments (simple versions)
+- [ ] **6.6 Save to Sheets** — All posts and interactions recorded
+- [ ] **6.7 Tagging** — Tag other characters in posts
 
 ### Phase 7: Messaging
 > Private messages between players (and eventually NPCs).

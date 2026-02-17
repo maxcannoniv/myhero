@@ -88,3 +88,13 @@ async function sheetsRegister(data) {
 async function sheetsGetFeed(feedName) {
   return await callAppsScript('getFeed', { feed: feedName });
 }
+
+/**
+ * Create a new post on a feed.
+ *
+ * @param {object} postData - { feed, posted_by, posted_by_type, title, image_url, body }
+ * @returns {object} - { success: true } or { success: false, error: '...' }
+ */
+async function sheetsCreatePost(postData) {
+  return await callAppsScript('createPost', postData);
+}

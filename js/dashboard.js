@@ -238,6 +238,126 @@ function renderBliink(post) {
 }
 
 // -----------------------------------------------
+// BLIINK — Post Creation
+// -----------------------------------------------
+
+// Preset images — players pick from these
+var BLIINK_PRESETS = [
+  { label: 'City Skyline', url: 'https://placehold.co/600x600/1a1a2e/f5c518?text=CITY+SKYLINE' },
+  { label: 'Downtown', url: 'https://placehold.co/600x600/16213e/4fc3f7?text=DOWNTOWN' },
+  { label: 'The Docks', url: 'https://placehold.co/600x600/0f3460/a0a0b0?text=THE+DOCKS' },
+  { label: 'Night Out', url: 'https://placehold.co/600x600/2a1a2e/bb86fc?text=NIGHT+OUT' },
+  { label: 'Training', url: 'https://placehold.co/600x600/1a2e1a/00c853?text=TRAINING' },
+  { label: 'On the Job', url: 'https://placehold.co/600x600/2e2a1a/f5c518?text=ON+THE+JOB' },
+  { label: 'Selfie', url: 'https://placehold.co/600x600/1a1a2e/e94560?text=SELFIE' },
+  { label: 'Meetup', url: 'https://placehold.co/600x600/1a2e2e/4fc3f7?text=MEETUP' },
+  { label: 'Victory', url: 'https://placehold.co/600x600/2e1a1a/f5c518?text=VICTORY' }
+];
+
+var selectedPresetUrl = null;
+
+// Build the preset image grid
+var presetGrid = document.getElementById('bliinkPresetGrid');
+if (presetGrid) {
+  BLIINK_PRESETS.forEach(function(preset) {
+    var tile = document.createElement('div');
+    tile.className = 'bl-preset-tile';
+    tile.innerHTML = '<img src="' + preset.url + '" alt="' + preset.label + '">' +
+      '<span>' + preset.label + '</span>';
+
+    tile.addEventListener('click', function() {
+      // Deselect all, select this one
+      var allTiles = presetGrid.querySelectorAll('.bl-preset-tile');
+      allTiles.forEach(function(t) { t.classList.remove('selected'); });
+      tile.classList.add('selected');
+      selectedPresetUrl = preset.url;
+
+      // Show preview
+      var preview = document.getElementById('bliinkSelectedPreview');
+      var previewImg = document.getElementById('bliinkPreviewImg');
+      previewImg.src = preset.url;
+      preview.style.display = 'block';
+    });
+
+    presetGrid.appendChild(tile);
+  });
+}
+
+// Show/hide the composer
+var bliinkNewPostBtn = document.getElementById('bliinkNewPostBtn');
+var bliinkComposer = document.getElementById('bliinkComposer');
+var bliinkCancelBtn = document.getElementById('bliinkCancelBtn');
+
+if (bliinkNewPostBtn) {
+  bliinkNewPostBtn.addEventListener('click', function() {
+    bliinkComposer.style.display = 'block';
+    bliinkNewPostBtn.style.display = 'none';
+  });
+}
+
+if (bliinkCancelBtn) {
+  bliinkCancelBtn.addEventListener('click', function() {
+    resetBliinkComposer();
+  });
+}
+
+function resetBliinkComposer() {
+  bliinkComposer.style.display = 'none';
+  bliinkNewPostBtn.style.display = 'block';
+  document.getElementById('bliinkCaption').value = '';
+  document.getElementById('bliinkPostError').textContent = '';
+  document.getElementById('bliinkSelectedPreview').style.display = 'none';
+  selectedPresetUrl = null;
+  var allTiles = presetGrid.querySelectorAll('.bl-preset-tile');
+  allTiles.forEach(function(t) { t.classList.remove('selected'); });
+}
+
+// Submit a Bliink post
+var bliinkPostBtn = document.getElementById('bliinkPostBtn');
+if (bliinkPostBtn) {
+  bliinkPostBtn.addEventListener('click', function() {
+    var caption = document.getElementById('bliinkCaption').value.trim();
+    var errorEl = document.getElementById('bliinkPostError');
+    errorEl.textContent = '';
+
+    if (!selectedPresetUrl) {
+      errorEl.textContent = 'Pick an image first.';
+      return;
+    }
+    if (!caption) {
+      errorEl.textContent = 'Write a caption.';
+      return;
+    }
+
+    var heroName = (session && session.hero) ? (session.hero.hero_name || session.username) : 'Unknown';
+
+    bliinkPostBtn.textContent = 'Posting...';
+    bliinkPostBtn.disabled = true;
+
+    sheetsCreatePost({
+      feed: 'bliink',
+      posted_by: heroName,
+      posted_by_type: 'character',
+      title: '',
+      image_url: selectedPresetUrl,
+      body: caption
+    }).then(function(result) {
+      bliinkPostBtn.textContent = 'Post';
+      bliinkPostBtn.disabled = false;
+
+      if (result.success) {
+        resetBliinkComposer();
+        // Reload the feed to show the new post
+        feedsLoaded['bliink'] = false;
+        loadFeed('bliink');
+      } else {
+        errorEl.textContent = result.error || 'Failed to post. Try again.';
+      }
+    });
+  });
+}
+
+// -----------------------------------------------
 // LOAD HERO DATA
 // -----------------------------------------------
 
