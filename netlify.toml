@@ -1,0 +1,8 @@
+[build]
+  # No build step needed — just static files + functions
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  # Bundle dependencies with each function
+  node_bundler = "esbuild"

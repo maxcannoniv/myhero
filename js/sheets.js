@@ -6,11 +6,10 @@
    ============================================ */
 
 // -----------------------------------------------
-// IMPORTANT: Replace this URL with your deployed
-// Google Apps Script web app URL.
-// See the setup guide for how to get this URL.
+// API URL — Netlify Function (auto-deploys with git push)
+// Falls back to Apps Script if needed.
 // -----------------------------------------------
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwIHb0Dq88d-jy22mvK1mPCEByxwgsVbJRJ0rKQdC_f-VYBpicCVyiwTv5XZ_tWRs0I/exec';
+const API_URL = '/.netlify/functions/api';
 
 /**
  * Send a request to the Google Apps Script web app.
@@ -27,9 +26,9 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwIHb0Dq88d-jy2
  */
 async function callAppsScript(action, data) {
   try {
-    const response = await fetch(APPS_SCRIPT_URL, {
+    const response = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: action, data: data })
     });
 
