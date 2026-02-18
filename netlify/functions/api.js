@@ -248,7 +248,8 @@ async function handleCreatePost(data) {
     data.image_url || '',
     data.body,
     timestamp,
-    'yes'
+    'yes',
+    data.cutout_url || ''
   ];
 
   await sheets.spreadsheets.values.append({

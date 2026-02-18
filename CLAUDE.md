@@ -151,7 +151,7 @@ Players don't know which characters are NPCs and which are real players. All cha
 - **New character added** → no action needed. Reputation is player×faction only; NPC characters don't get reputation rows.
 **Tab: Inventory** — Per-player items and notes. Columns: username, item_name, type (item/note), content_id (for notes), description
 **Tab: NoteContent** — Secret content for notes. Columns: content_id, title, body_text, image_url. Only loaded when a player with the note clicks it.
-**Tab: Feeds** — All feed posts (all 4 feeds in one tab). Columns: feed, posted_by, posted_by_type (character/faction/anonymous), title, image_url, body, timestamp, visible (yes/no)
+**Tab: Feeds** — All feed posts (all feeds in one tab). Columns: feed, posted_by, posted_by_type (character/faction/anonymous), title, image_url, body, timestamp, visible (yes/no), cutout_url (optional — character cutout layered over image_url in Bliink posts)
 **Tab: Messages** — All messages. Columns: from_character, to_character, body, timestamp, read (yes/no)
 **Tab: Contacts** — Player contact lists. Columns: hero_name, contact_name
 **Tab: Missions** — Empty, for future use

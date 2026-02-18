@@ -1266,9 +1266,31 @@ select.form-input option {
   color: var(--text-light);
 }
 
-.bl-image {
+/* Layered image frame — background + optional cutout overlay */
+.bl-image-frame {
+  position: relative;
   width: 100%;
+  aspect-ratio: 1; /* square crop, like Instagram */
+  overflow: hidden;
+  background: #000;
+}
+
+.bl-background {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
+}
+
+.bl-cutout {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  height: 90%;
+  width: auto;
+  object-fit: contain;
+  /* Subtle drop shadow so cutout reads clearly over any background */
+  filter: drop-shadow(-4px 0px 8px rgba(0,0,0,0.7));
 }
 
 .bl-caption {
@@ -1795,12 +1817,59 @@ select.form-input option {
   margin-bottom: 12px;
 }
 
-.bl-preset-label {
+.bl-composer-label {
   font-size: 0.8rem;
   color: var(--text-muted);
-  margin-bottom: 8px;
+  margin: 12px 0 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.bl-optional {
+  text-transform: none;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.bl-picker-empty {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 0 8px;
+}
+
+/* Live layered preview in the composer */
+.bl-composer-preview {
+  margin: 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(187, 134, 252, 0.3);
+}
+
+.bl-preview-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: #000;
+  overflow: hidden;
+}
+
+.bl-preview-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.bl-preview-cutout {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  height: 90%;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(-4px 0px 8px rgba(0,0,0,0.7));
 }
 
 .bl-preset-grid {

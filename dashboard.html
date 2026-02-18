@@ -109,13 +109,24 @@
         <div class="bl-composer" id="bliinkComposer" style="display: none;">
           <div class="bl-composer-header">New Bliink Post</div>
 
-          <!-- Preset image picker -->
-          <div class="bl-preset-label">Choose an image:</div>
-          <div class="bl-preset-grid" id="bliinkPresetGrid">
-            <!-- Preset images are populated by JS -->
+          <!-- Step 1: Background picker -->
+          <div class="bl-composer-label">Choose a background:</div>
+          <div class="bl-preset-grid" id="bliinkBgGrid">
+            <!-- Populated by JS -->
           </div>
-          <div class="bl-selected-preview" id="bliinkSelectedPreview" style="display: none;">
-            <img id="bliinkPreviewImg" src="" alt="Selected">
+
+          <!-- Step 2: Character cutout picker (optional) -->
+          <div class="bl-composer-label">Add a character <span class="bl-optional">(optional)</span>:</div>
+          <div class="bl-preset-grid" id="bliinkCutoutGrid">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Live preview: background + cutout layered -->
+          <div class="bl-composer-preview" id="bliinkComposerPreview" style="display: none;">
+            <div class="bl-preview-frame">
+              <img class="bl-preview-bg" id="bliinkPreviewBg" src="" alt="">
+              <img class="bl-preview-cutout" id="bliinkPreviewCutout" src="" alt="" style="display: none;">
+            </div>
           </div>
 
           <!-- Caption -->

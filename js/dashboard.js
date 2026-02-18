@@ -242,9 +242,19 @@ function renderBliink(post) {
   var html = '<div class="bl-header">';
   html += '<span class="bl-username">' + (post.posted_by || 'Anonymous') + '</span>';
   html += '</div>';
-  if (post.image_url) {
-    html += '<img class="bl-image" src="' + post.image_url + '" alt="">';
+
+  // Image area — layers cutout over background if both exist
+  if (post.image_url || post.cutout_url) {
+    html += '<div class="bl-image-frame">';
+    if (post.image_url) {
+      html += '<img class="bl-background" src="' + post.image_url + '" alt="">';
+    }
+    if (post.cutout_url) {
+      html += '<img class="bl-cutout" src="' + post.cutout_url + '" alt="">';
+    }
+    html += '</div>';
   }
+
   html += '<div class="bl-caption">';
   html += '<span class="bl-username">' + (post.posted_by || '') + '</span> ';
   html += linkifyNames(post.body);
@@ -656,47 +666,103 @@ function makeNamesClickable(container) {
 // BLIINK — Post Creation
 // -----------------------------------------------
 
-// Preset images — players pick from these
-var BLIINK_PRESETS = [
+// Background images for Bliink posts (place scenes from assets/places/).
+// Add an entry here when you add a new assets/places/{slug}/background.png.
+// Placeholder URLs are used until real place assets exist.
+var BLIINK_BACKGROUNDS = [
   { label: 'City Skyline', url: 'https://placehold.co/600x600/1a1a2e/f5c518?text=CITY+SKYLINE' },
-  { label: 'Downtown', url: 'https://placehold.co/600x600/16213e/4fc3f7?text=DOWNTOWN' },
-  { label: 'The Docks', url: 'https://placehold.co/600x600/0f3460/a0a0b0?text=THE+DOCKS' },
-  { label: 'Night Out', url: 'https://placehold.co/600x600/2a1a2e/bb86fc?text=NIGHT+OUT' },
-  { label: 'Training', url: 'https://placehold.co/600x600/1a2e1a/00c853?text=TRAINING' },
-  { label: 'On the Job', url: 'https://placehold.co/600x600/2e2a1a/f5c518?text=ON+THE+JOB' },
-  { label: 'Selfie', url: 'https://placehold.co/600x600/1a1a2e/e94560?text=SELFIE' },
-  { label: 'Meetup', url: 'https://placehold.co/600x600/1a2e2e/4fc3f7?text=MEETUP' },
-  { label: 'Victory', url: 'https://placehold.co/600x600/2e1a1a/f5c518?text=VICTORY' }
+  { label: 'Downtown',     url: 'https://placehold.co/600x600/16213e/4fc3f7?text=DOWNTOWN' },
+  { label: 'The Docks',    url: 'https://placehold.co/600x600/0f3460/a0a0b0?text=THE+DOCKS' },
+  { label: 'Night Out',    url: 'https://placehold.co/600x600/2a1a2e/bb86fc?text=NIGHT+OUT' },
+  { label: 'Training',     url: 'https://placehold.co/600x600/1a2e1a/00c853?text=TRAINING' },
+  { label: 'On the Job',   url: 'https://placehold.co/600x600/2e2a1a/f5c518?text=ON+THE+JOB' },
+  { label: 'Selfie',       url: 'https://placehold.co/600x600/1a1a2e/e94560?text=SELFIE' },
+  { label: 'Meetup',       url: 'https://placehold.co/600x600/1a2e2e/4fc3f7?text=MEETUP' },
+  { label: 'Victory',      url: 'https://placehold.co/600x600/2e1a1a/f5c518?text=VICTORY' }
 ];
 
-var selectedPresetUrl = null;
+// Character cutouts for layering over backgrounds.
+// Add an entry here when you add assets/characters/{slug}/cutout.png.
+var BLIINK_CUTOUTS = [
+  // { label: 'Bloodhound', url: '/assets/characters/bloodhound/cutout.png' },
+  // { label: 'Mongrel',    url: '/assets/characters/mongrel/cutout.png' },
+];
 
-// Build the preset image grid
-var presetGrid = document.getElementById('bliinkPresetGrid');
-if (presetGrid) {
-  BLIINK_PRESETS.forEach(function(preset) {
+var selectedBgUrl = null;
+var selectedCutoutUrl = null;
+
+// Build a picker grid and return it — used for both backgrounds and cutouts
+function buildPickerGrid(gridEl, items, onSelect, getSelected) {
+  if (!gridEl) return;
+
+  if (items.length === 0) {
+    gridEl.innerHTML = '<div class="bl-picker-empty">None available yet.</div>';
+    return;
+  }
+
+  items.forEach(function(item) {
     var tile = document.createElement('div');
     tile.className = 'bl-preset-tile';
-    tile.innerHTML = '<img src="' + preset.url + '" alt="' + preset.label + '">' +
-      '<span>' + preset.label + '</span>';
+    tile.innerHTML = '<img src="' + item.url + '" alt="' + item.label + '">' +
+      '<span>' + item.label + '</span>';
 
     tile.addEventListener('click', function() {
-      // Deselect all, select this one
-      var allTiles = presetGrid.querySelectorAll('.bl-preset-tile');
-      allTiles.forEach(function(t) { t.classList.remove('selected'); });
+      // If already selected, deselect (cutout is optional)
+      if (tile.classList.contains('selected') && gridEl.id === 'bliinkCutoutGrid') {
+        tile.classList.remove('selected');
+        onSelect(null);
+        updateComposerPreview();
+        return;
+      }
+      // Deselect others in this grid, select this tile
+      gridEl.querySelectorAll('.bl-preset-tile').forEach(function(t) {
+        t.classList.remove('selected');
+      });
       tile.classList.add('selected');
-      selectedPresetUrl = preset.url;
-
-      // Show preview
-      var preview = document.getElementById('bliinkSelectedPreview');
-      var previewImg = document.getElementById('bliinkPreviewImg');
-      previewImg.src = preset.url;
-      preview.style.display = 'block';
+      onSelect(item.url);
+      updateComposerPreview();
     });
 
-    presetGrid.appendChild(tile);
+    gridEl.appendChild(tile);
   });
 }
+
+// Update the live layered preview in the composer
+function updateComposerPreview() {
+  var previewEl = document.getElementById('bliinkComposerPreview');
+  var bgImg = document.getElementById('bliinkPreviewBg');
+  var cutoutImg = document.getElementById('bliinkPreviewCutout');
+
+  if (!selectedBgUrl) {
+    previewEl.style.display = 'none';
+    return;
+  }
+
+  bgImg.src = selectedBgUrl;
+  previewEl.style.display = 'block';
+
+  if (selectedCutoutUrl) {
+    cutoutImg.src = selectedCutoutUrl;
+    cutoutImg.style.display = 'block';
+  } else {
+    cutoutImg.style.display = 'none';
+  }
+}
+
+// Build both pickers
+buildPickerGrid(
+  document.getElementById('bliinkBgGrid'),
+  BLIINK_BACKGROUNDS,
+  function(url) { selectedBgUrl = url; },
+  function() { return selectedBgUrl; }
+);
+
+buildPickerGrid(
+  document.getElementById('bliinkCutoutGrid'),
+  BLIINK_CUTOUTS,
+  function(url) { selectedCutoutUrl = url; },
+  function() { return selectedCutoutUrl; }
+);
 
 // Show/hide the composer
 var bliinkNewPostBtn = document.getElementById('bliinkNewPostBtn');
@@ -721,10 +787,11 @@ function resetBliinkComposer() {
   bliinkNewPostBtn.style.display = 'block';
   document.getElementById('bliinkCaption').value = '';
   document.getElementById('bliinkPostError').textContent = '';
-  document.getElementById('bliinkSelectedPreview').style.display = 'none';
-  selectedPresetUrl = null;
-  var allTiles = presetGrid.querySelectorAll('.bl-preset-tile');
-  allTiles.forEach(function(t) { t.classList.remove('selected'); });
+  document.getElementById('bliinkComposerPreview').style.display = 'none';
+  selectedBgUrl = null;
+  selectedCutoutUrl = null;
+  document.querySelectorAll('#bliinkBgGrid .bl-preset-tile, #bliinkCutoutGrid .bl-preset-tile')
+    .forEach(function(t) { t.classList.remove('selected'); });
 }
 
 // Submit a Bliink post
@@ -735,8 +802,8 @@ if (bliinkPostBtn) {
     var errorEl = document.getElementById('bliinkPostError');
     errorEl.textContent = '';
 
-    if (!selectedPresetUrl) {
-      errorEl.textContent = 'Pick an image first.';
+    if (!selectedBgUrl) {
+      errorEl.textContent = 'Pick a background first.';
       return;
     }
     if (!caption) {
@@ -754,7 +821,8 @@ if (bliinkPostBtn) {
       posted_by: heroName,
       posted_by_type: 'character',
       title: '',
-      image_url: selectedPresetUrl,
+      image_url: selectedBgUrl,
+      cutout_url: selectedCutoutUrl || '',
       body: caption
     }).then(function(result) {
       bliinkPostBtn.textContent = 'Post';
@@ -762,7 +830,6 @@ if (bliinkPostBtn) {
 
       if (result.success) {
         resetBliinkComposer();
-        // Reload the feed to show the new post
         feedsLoaded['bliink'] = false;
         loadFeed('bliink');
       } else {
