@@ -65,7 +65,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 **Characters & Factions:**
 - [x] **3.9 Character creator/editor** — Form to add or edit NPC characters (name, class, bio, faction, faction_role, profile_visible). Reveal hidden NPCs with a toggle.
 - [x] **3.10 Faction creator/editor** — Form to add or edit factions (name, description, power_multiplier, leader, members_public). Auto-runs reputation fill for all existing players when a new faction is created.
-- [x] **3.11 Character roster view** — Table of all characters (player + NPC) with inline editing for bio, faction_role, profile_visible.
+- [x] **3.11 Character roster view** — Roster of all characters (player + NPC). Player cards have green "PLAYER" badge + @username and are grouped separately from NPCs. "Sync Players" button retroactively creates Characters entries for players who registered before auto-create existed.
 
 **Inventory & Notes:**
 - [ ] **3.12 Inventory/note giver** — Form: pick player, give item (name + description) or note (name + content: title, body_text, image_url). Handles both Inventory tab and NoteContent tab in one operation.
@@ -74,6 +74,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [ ] **3.13 Password reset** — Find a player, generate a new hash, update Players tab.
 - [x] **3.14 Post visibility toggle** — List all feed posts with a visible/hidden toggle per post. Lets DM draft posts in Sheets and publish from the admin panel.
 - [ ] **3.15 In-portal image uploads** — Upload character profile photos, cutouts, faction banners, and place backgrounds directly from the admin portal instead of using the terminal drop-folder workflow. Uses [imgbb](https://imgbb.com) (free image hosting) — create an account, get an API key, add it as `IMGBB_API_KEY` in Netlify env vars. The upload widget is already built into the character/faction/place edit forms; it just needs the API key to activate. Low priority — the existing `process-assets.js` drop-folder workflow covers this fine for now.
+- [x] **3.16 Asset gallery** — Read-only image bank in the admin portal. Shows all images in the system (character profiles + cutouts, faction banners, place backgrounds) as a grid with thumbnails and one-click Copy URL buttons. Pulls from Characters, Factions, and Places tabs automatically.
 
 ### Phase 3.5: Migrate Backend to Netlify Functions — COMPLETE
 > Eliminate manual Apps Script redeployment. Code auto-deploys with git push.
@@ -250,7 +251,7 @@ These came up in conversation and should be addressed in future sessions:
 - **Stock market** — Future system, likely tied to Commerce skill and Daily Dollar feed. No design yet.
 - **Thread system** — Narrative sub-structure within Arcs. Design TBD.
 - **Clout formula** — Faction standing × faction power multiplier, details TBD. Reputation tab exists but clout calculation is not wired up yet.
-- ~~**Admin dashboard**~~ — Built. DM portal at `/admin.html` with 10 sections: Dashboard, NPC Inbox, Post Composer, Missions, Cycle, Players, Reputation, Characters, Factions, Places.
+- ~~**Admin dashboard**~~ — Built. DM portal at `/admin.html` with 11 sections: Dashboard, NPC Inbox, Post Composer, Missions, Cycle, Players, Reputation, Characters, Factions, Places, Assets.
 - **Bliink moderation** — New posts go to `visible: no`, DM reviews. "Bliink Quality Control" in-universe.
 - **Custom image uploads for Bliink** — Behind moderation wall
 - **In-portal image uploads (imgbb)** — Upload images directly from the admin portal without touching the terminal. Uses imgbb (free image hosting service) as a middleman — you upload from the browser, imgbb stores it and returns a public URL, URL gets saved to Sheets. The upload widgets are already in the admin portal forms (character, faction, place). Just needs `IMGBB_API_KEY` set in Netlify env vars to activate. See Phase 3.15.

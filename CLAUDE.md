@@ -28,10 +28,10 @@ An asynchronous multiplayer social-strategy RPG played through a web dashboard. 
 **Admin portal (DM only — not linked from player pages):**
 - `admin.html` — Game Manager portal. Login-gated. Requires `ADMIN_PASSWORD` env var on Netlify.
 - `css/admin.css` — Admin portal styles (dark theme, sidebar layout, tables, forms)
-- `js/admin.js` — All admin logic: auth, 10 sections (Dashboard, NPC Inbox, Post Composer, Missions, Cycle, Players, Reputation, Characters, Factions, Places)
+- `js/admin.js` — All admin logic: auth, 11 sections (Dashboard, NPC Inbox, Post Composer, Missions, Cycle, Players, Reputation, Characters, Factions, Places, Assets)
 
 **Backend:**
-- `netlify/functions/api.js` — **The backend**. Handles all API actions: player routes (login, register, getHeroData, getFeed, createPost, getInbox, getThread, sendMessage, getContacts, addContact, getCharacter, getFaction, getMissions, getMissionQuestions, submitMission, getCharacters, getPlaces) + admin routes (adminLogin, adminGetOverview, adminGetNPCInbox, adminSendMessage, adminGetAllPosts, adminCreatePost, adminUpdatePost, adminGetMissionSubmissions, adminResolveMission, adminAdvanceCycle, adminGetPlayers, adminUpdatePlayer, adminGetReputation, adminUpdateReputation, adminGetAllCharacters, adminSaveCharacter, adminGetFactions, adminSaveFaction, adminUploadImage, adminGetPlaces, adminSavePlace). All admin routes verified by `verifyAdmin()`.
+- `netlify/functions/api.js` — **The backend**. Handles all API actions: player routes (login, register, getHeroData, getFeed, createPost, getInbox, getThread, sendMessage, getContacts, addContact, getCharacter, getFaction, getMissions, getMissionQuestions, submitMission, getCharacters, getPlaces) + admin routes (adminLogin, adminGetOverview, adminGetNPCInbox, adminSendMessage, adminGetAllPosts, adminCreatePost, adminUpdatePost, adminGetMissionSubmissions, adminResolveMission, adminAdvanceCycle, adminGetPlayers, adminUpdatePlayer, adminGetReputation, adminUpdateReputation, adminGetAllCharacters, adminSaveCharacter, adminGetFactions, adminSaveFaction, adminUploadImage, adminGetPlaces, adminSavePlace, adminSyncPlayers, adminMarkNpcMessagesRead). All admin routes verified by `verifyAdmin()`.
 - `netlify.toml` — Netlify config (publish dir, functions dir, esbuild bundler)
 
 **Setup scripts (run once or as needed):**
@@ -242,6 +242,8 @@ Feed posts can be created in two ways:
 
 **`[Name]` syntax** — write `[Mongrel]` anywhere in `body` and it renders as a clickable character link in all feeds.
 
+**Posted By Type** auto-fills when you select a name: picking from the Characters group sets type to `character`; picking from Factions sets `faction`. You can override manually. The myHERO feed option posts to the "Jobs & Announcements" section that appears below the mission cards.
+
 > **[DONE]** — Post Composer is in the admin portal.
 
 ---
@@ -253,6 +255,7 @@ Feed posts can be created in two ways:
 2. Select the player recipient (conversation tab)
 3. Type message + click Send
 - Timestamp and cycle_id are auto-filled. Message appears in player's inbox immediately.
+- Opening a conversation automatically marks that player's messages to the NPC as read; unread badge in the sidebar updates immediately.
 
 **Manual fallback: Sheets**
 - Open `Messages` tab → add row: `from_character`, `to_character`, `body`, `timestamp` (`YYYY-MM-DD HH:MM`), `read` = `no`, `cycle_id`
@@ -266,11 +269,12 @@ Feed posts can be created in two ways:
 **When a player registers**, a Characters row is automatically created for them (`type: player`, `profile_visible: no`). You'll see their hero name appear in the Characters section of the admin portal, labeled as `player` type. Fill in their bio, faction, and image when ready, then flip `profile_visible` to `yes` to make them visible in-world.
 
 **Preferred: Admin portal Characters section** (`/admin.html` → Characters)
-- Player characters appear automatically after signup — labeled `player` with their linked username shown (read-only)
+- Player characters appear automatically after signup — labeled with a green "PLAYER" badge, green left border, their @username, and grouped separately from NPCs at the top of the roster
 - Click any character card to open its edit form (name, class, bio, faction, faction_role, profile_visible, profile_url, cutout_url)
 - Click "Add New Character" to create an NPC manually
 - Toggle `profile_visible` to reveal or hide a character from players
 - Paste a direct image URL into `profile_url` or `cutout_url` to set images without local file management
+- **Sync Players button** — if players registered before the auto-create feature was added, click "Sync Players → Characters" to retroactively create their Characters tab entries
 
 **Add local image assets for a character (existing workflow — still works):**
 1. Drop the image into `_drop/characters/` (profile headshot) or `_drop/cutouts/` (transparent PNG)
@@ -433,6 +437,7 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
 | **Faction creator/editor** | ✓ Done | Factions |
 | **Mission reviewer** | ✓ Done | Missions |
 | **Bliink backgrounds (Places)** | ✓ Done | Places |
+| **Asset gallery (image bank)** | ✓ Done | Assets |
 | **Inventory/note giver** | Not built | Phase 3.12 |
 | **Mission stat-change auto-apply** | Not built | Phase 3.7 |
 | **Password reset** | Not built | Phase 3.13 |
@@ -440,7 +445,7 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
 
 ---
 
-## Current State (as of 2026-02-20)
+## Current State (as of 2026-02-21)
 
 **What's built and working:**
 - Full login/signup flow with class selection and skill allocation
@@ -463,17 +468,18 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
   - Full-screen question overlay: image swaps, flavor text, answer locking, auto-advance
   - Confirm screen before submit; outcome screen with narrative + stat change string after DM resolves
   - `option_weight` never sent to client — players cannot see how choices are weighted
-- **Admin portal** — DM-only interface at `/admin.html`. Login-gated (ADMIN_PASSWORD env var). 10 sections:
+- **Admin portal** — DM-only interface at `/admin.html`. Login-gated (ADMIN_PASSWORD env var). 11 sections:
   - **Dashboard** — overview stats (players, unread messages, pending missions, current cycle)
-  - **NPC Inbox** — send messages as any NPC to any player; view full conversation history
-  - **Post Composer** — write and publish feed posts with auto-filled timestamp + cycle_id; publish/unpublish toggle on existing posts
+  - **NPC Inbox** — send messages as any NPC to any player; view full conversation history; opening a conversation marks those player messages as read automatically
+  - **Post Composer** — write and publish feed posts with auto-filled timestamp + cycle_id; publish/unpublish toggle on existing posts; Posted By Type auto-fills (character/faction) when you pick a name
   - **Missions** — view all player submissions per mission; override outcome bucket; flip resolved = yes
   - **Cycle** — one-click cycle advancement (increments counter + writes timestamp to Sheets)
   - **Players** — editable stat table for all players (skills + aggregates)
   - **Reputation** — player × faction grid with dropdown per cell; auto-saves on change
-  - **Characters** — roster + edit form; player characters auto-appear here on signup (profile_visible = no); toggle to activate; shows linked username for player-type characters
+  - **Characters** — roster + edit form; player characters auto-appear here on signup with green "PLAYER" badge and grouped separately from NPCs; toggle `profile_visible` to activate; "Sync Players" button retroactively creates Characters entries for any player who registered before that feature existed
   - **Factions** — list + edit form; auto-creates reputation rows on new faction save; set banner_url
   - **Places** — Bliink background list; add/edit slug + label + background_url
+  - **Assets** — read-only image gallery showing all images in the system (character profiles, cutouts, faction banners, place backgrounds) with thumbnails and one-click Copy URL buttons
 - Backend fully on Netlify Functions (auto-deploys with git push)
 - Live at https://myherogame.netlify.app
 
@@ -481,7 +487,7 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
 1. **Feed content** — Only sample/test posts exist. DM needs to write real Streetview articles, Daily Dollar news, myHERO job listings, NPC Bliink posts, and The Times Today articles. (Use Post Composer in admin portal.)
 2. **Real missions** — Sheets structure and UI are live, but only a sample mission exists. DM needs to write real missions with questions, images, and outcome narratives.
 3. **Inventory/Notebook system** — Tab structure exists in Sheets but the terminal app shows "Coming Soon". Giving items/notes to players still requires manual Sheets editing.
-4. **Mission stat-change auto-apply** — DM still reads the outcome_changes string and manually updates Players + Reputation tabs. Automation planned for Phase 3.7.
+4. **Mission stat-change auto-apply** — DM still reads the outcome_changes string and manually updates Players + Reputation tabs. Automation planned for a future phase.
 5. **Password reset** — No admin UI yet. Manual Sheets edit required (Phase 3.13).
 6. **In-portal image uploads** — Upload widget is built into admin forms but requires IMGBB_API_KEY env var (not set). Process-assets.js workflow still the primary way to add images (Phase 3.15).
 
