@@ -153,12 +153,22 @@ function loadFeed(feedName) {
   });
 }
 
-// Format a timestamp into something readable
+// Format a timestamp into something readable (real-world date — used as fallback only)
 function formatDate(timestamp) {
   if (!timestamp) return '';
   var d = new Date(timestamp);
   var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
+// In-universe timestamp — cycle_id is the primary time display.
+// Cycle IDs look like: 1.02.15.3
+//   (cycle 1, day 2, hour 15, 10-min block 3 = roughly 30-39 min past the hour)
+// Falls back to the real date for old posts that predate the cycle system.
+function formatCycleStamp(item) {
+  if (item && item.cycle_id) return 'C-' + item.cycle_id;
+  if (item && item.timestamp) return formatDate(item.timestamp);
+  return '';
 }
 
 // Replace [Name] in post body text with a clickable span.
@@ -183,7 +193,7 @@ function renderStreetview(post) {
   var article = document.createElement('article');
   article.className = 'sv-post';
 
-  var html = '<div class="sv-date">' + formatDate(post.timestamp) + '</div>';
+  var html = '<div class="sv-date">' + formatCycleStamp(post) + '</div>';
   html += '<h3 class="sv-title">' + (post.title || '') + '</h3>';
   if (post.image_url) {
     html += '<img class="sv-image" src="' + post.image_url + '" alt="">';
@@ -199,7 +209,7 @@ function renderDailyDollar(post) {
   var article = document.createElement('article');
   article.className = 'dd-post';
 
-  var html = '<div class="dd-dateline">' + formatDate(post.timestamp) + '</div>';
+  var html = '<div class="dd-dateline">' + formatCycleStamp(post) + '</div>';
   html += '<h3 class="dd-headline">' + (post.title || '') + '</h3>';
   if (post.image_url) {
     html += '<img class="dd-image" src="' + post.image_url + '" alt="">';
@@ -227,7 +237,7 @@ function renderMyHero(post) {
   html += '<p class="mh-body">' + linkifyNames(post.body) + '</p>';
   html += '<div class="mh-meta">';
   html += '<span class="mh-poster">' + (post.posted_by || '') + '</span>';
-  html += '<span class="mh-date">' + formatDate(post.timestamp) + '</span>';
+  html += '<span class="mh-date">' + formatCycleStamp(post) + '</span>';
   html += '</div></div>';
 
   card.innerHTML = html;
@@ -259,7 +269,7 @@ function renderBliink(post) {
   html += '<span class="bl-username">' + (post.posted_by || '') + '</span> ';
   html += linkifyNames(post.body);
   html += '</div>';
-  html += '<div class="bl-date">' + formatDate(post.timestamp) + '</div>';
+  html += '<div class="bl-date">' + formatCycleStamp(post) + '</div>';
 
   card.innerHTML = html;
   return card;
@@ -270,16 +280,7 @@ function renderTidbit(post) {
   var article = document.createElement('article');
   article.className = 'tt-post';
 
-  // Format date the way a newspaper would: "Monday, February 17, 2026"
-  var dateStr = '';
-  if (post.timestamp) {
-    var d = new Date(post.timestamp);
-    var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    dateStr = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
-  }
-
-  var html = '<div class="tt-dateline">' + dateStr + '</div>';
+  var html = '<div class="tt-dateline">' + formatCycleStamp(post) + '</div>';
   html += '<h3 class="tt-headline">' + (post.title || '') + '</h3>';
   if (post.image_url) {
     html += '<img class="tt-image" src="' + post.image_url + '" alt="">';
@@ -323,7 +324,7 @@ function loadInbox() {
           (thread.unread > 0 ? ' <span class="msg-unread-badge">' + thread.unread + '</span>' : '') +
           '</div>' +
           '<div class="msg-inbox-preview">' + preview + '</div>' +
-          '<div class="msg-inbox-time">' + formatDate(thread.lastMessage.timestamp) + '</div>';
+          '<div class="msg-inbox-time">' + formatCycleStamp(thread.lastMessage) + '</div>';
 
         item.addEventListener('click', function() {
           openThread(thread.contact);
@@ -364,7 +365,7 @@ function openThread(contactName) {
         }
         bubble.innerHTML =
           '<div class="msg-bubble-text">' + msg.body + '</div>' +
-          '<div class="msg-bubble-time">' + formatDate(msg.timestamp) + '</div>';
+          '<div class="msg-bubble-time">' + formatCycleStamp(msg) + '</div>';
         threadDiv.appendChild(bubble);
       });
       // Scroll to bottom

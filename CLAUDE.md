@@ -18,18 +18,21 @@ An asynchronous multiplayer social-strategy RPG played through a web dashboard. 
 - `index.html` — Landing page (in-universe "Emergency Alert" from the Mayor)
 - `classes.html` — Class/archetype showcase ("Roles We Need Most")
 - `login.html` — Login + signup with skill point allocation
-- `dashboard.html` — Player terminal (phone-style app launcher with 8 apps)
+- `dashboard.html` — Player terminal (phone-style app launcher with 9 apps)
 - `css/style.css` — All styling (comic book theme, per-feed styles, messages, character popups)
 - `js/auth.js` — Login, signup, password hashing, session management, class skill data
 - `js/sheets.js` — API communication layer (calls Netlify Functions)
-- `js/dashboard.js` — Terminal navigation, feed rendering (4 distinct styles), Bliink posting, messaging (inbox/threads/contacts), character profile popups, clickable names
-- `netlify/functions/api.js` — **The backend**. Handles all API actions: login, register, getHeroData, getFeed, createPost, getInbox, getThread, sendMessage, getContacts, addContact, getCharacter
+- `js/dashboard.js` — Terminal navigation, feed rendering (5 distinct styles), Bliink posting + compositing, messaging (inbox/threads/contacts), character + faction popups, clickable names, `[Name]` syntax
+- `netlify/functions/api.js` — **The backend**. Handles all API actions: login, register, getHeroData, getFeed, createPost, getInbox, getThread, sendMessage, getContacts, addContact, getCharacter, getFaction
 - `netlify.toml` — Netlify config (publish dir, functions dir, esbuild bundler)
 - `google-apps-script-clean.js` — Legacy Apps Script code (no longer active, kept for reference)
 - `setup-sheet.js` — Node script to set up Players tab
 - `setup-new-tabs.js` — Creates Characters and Factions tabs with initial NPC/faction data
 - `setup-feeds.js` — Creates Feeds tab with sample posts
 - `setup-messages.js` — Creates Messages and Contacts tabs
+- `setup-reputation.js` — Fills missing Reputation rows (player × faction = neutral). Safe to run after adding new factions — additive only, never overwrites custom values.
+- `process-assets.js` — Drop folder processor. Move image files into `_drop/` subfolders, run this script, it slugifies, moves to `assets/`, updates Sheets, updates `dashboard.js` arrays.
+- `sync-assets.js` — Read-only asset checker. Cross-references `assets/` folders vs. Sheets. Run to see what's missing or mismatched.
 - `credentials.json` — Service account key (in .gitignore, never commit)
 
 ## Game Design
@@ -51,7 +54,7 @@ An asynchronous multiplayer social-strategy RPG played through a web dashboard. 
 ### In-Universe Framing
 - **myHERO** is an in-world app (like Upwork/Fiverr/Uber for hero jobs), NOT the name of the whole game
 - The **dashboard** is a "terminal" — a phone-style device with apps
-- All feeds (myHERO, Bliink, Streetview, Daily Dollar, Messages, Profile) are presented as individual apps on the terminal home screen
+- All feeds (myHERO, Bliink, The Times Today, Streetview, Daily Dollar, Messages, Profile, Inventory, Notebook) are presented as individual apps on the 3×3 terminal home screen
 
 ### Characters
 - A **character** can be created by a player (player character) or by the DM (NPC)
@@ -124,15 +127,25 @@ assets/
 - Places are referenced directly by slug in the Bliink composer — no Sheets column needed
 - If `asset_slug` is blank, popups fall back to a text initial placeholder
 
-**Workflow for new assets:**
-1. Drop the file directly into the right subfolder with the correct filename
-2. Set `asset_slug` in the relevant Sheets tab
-3. Git push → Netlify auto-deploys
-4. Run `node sync-assets.js` to verify everything is wired up
+**Workflow for new assets (use this every time):**
+1. Name the file after the character/faction/place. Spaces and capitals are fine — the script handles the rest.
+   - e.g. `Aurora Edge.png` → slug `aurora-edge`
+2. Drop it into the right `_drop/` subfolder:
+   - `_drop/characters/` → profile headshots
+   - `_drop/cutouts/` → transparent PNGs for Bliink compositing
+   - `_drop/factions/` → faction banner images
+   - `_drop/places/` → background scenes for Bliink posts
+3. Run: `node process-assets.js`
+   - Moves files to correct `assets/` location with standardized filename
+   - Updates `asset_slug` in Characters or Factions tab in Sheets (creates column if missing)
+   - Adds cutouts to `BLIINK_CUTOUTS` and places to `BLIINK_BACKGROUNDS` in `dashboard.js`
+   - Clears the `_drop/` folder
+   - Prints a summary and warnings for any Sheets mismatches
+4. Git push → Netlify auto-deploys
+5. Optionally run `node sync-assets.js` to verify everything is wired up
 
-**Do NOT use the drop folders** (`Profile Pics/`, `Faction Pics/`, `Place Pics/`). Go directly to the right `assets/` subfolder.
-
-**Characters with assets:** bloodhound, mongrel, dozer, aurora-edge, smiles
+**Characters with assets (profile + cutout):** bloodhound, mongrel, dozer, aurora-edge, smiles
+**Places with assets:** mongrels-towing-yard
 
 ### Player Mystery
 Players don't know which characters are NPCs and which are real players. All characters are presented the same way in feeds and messages.
@@ -156,29 +169,29 @@ Players don't know which characters are NPCs and which are real players. All cha
 **Tab: Contacts** — Player contact lists. Columns: hero_name, contact_name
 **Tab: Missions** — Empty, for future use
 
-## Current State (as of 2026-02-17)
+## Current State (as of 2026-02-19)
 
 **What's built and working:**
 - Full login/signup flow with class selection and skill allocation
-- Phone-style terminal dashboard with 8 app icons
-- 4 live feeds with distinct visual styles: Streetview (noir), Daily Dollar (WSJ), myHERO (job board), Bliink (Instagram)
-- Bliink posting with preset image picker + captions
+- Phone-style terminal dashboard with 9 apps in a 3×3 grid (row 1: myHERO, Bliink, The Times; row 2: Daily Dollar, Streetview, Messages; row 3: Profile, Inventory, Notebook)
+- 5 live feeds with distinct visual styles: Streetview (noir), Daily Dollar (WSJ), myHERO (job board), Bliink (Instagram), The Times Today (broadsheet newspaper)
+- Bliink posting with CSS-layered compositing — background scene picker + optional character cutout picker + live preview + caption. Both image URLs saved to Feeds tab (`image_url` + `cutout_url`).
 - Messaging system: inbox, 1-on-1 threads, contacts, send/receive messages
-- Character profile popups from clickable names in feeds
+- Character profile popups — full trading-card layout: large image at top, info + bio + actions below. Clickable from any feed or faction popup.
+- Faction popups — clicking a faction name opens a card with description, leader (clickable), and member list (if `members_public = yes`). All members are clickable.
+- `[Name]` syntax in post body text — DM writes `[Mongrel]` in Sheets → renders as a clickable character link across all feeds
 - Contact discovery (zero starting contacts, discover through feeds)
 - Profile page with 4 aggregate scores + 6 base skills
 - Class starting defaults (bank, followers, authority) applied at signup
-- Factions and NPC characters created in Sheets
-- Character profile photos — asset system with `assets/characters/{slug}/profile.png`, shown in popup; falls back to first initial. Bloodhound, Mongrel, Dozer have photos.
-- The Times Today feed — local newspaper style (broadsheet). Feed key: `todaystidbit`
-- Faction popups — clicking a faction name in a character popup opens a faction card (name, description, leader, member list if members_public=yes). Leader and members are clickable.
-- [Name] syntax in post body text — DM writes [Mongrel] in Sheets → renders as clickable character link across all feeds
-- Aurora Edge (asset_slug: aurora-edge) and Smiles (asset_slug: smiles) added to character assets
+- Reputation system — Reputation tab tracks player × faction standing (hostile/negative/neutral/positive/ally). Auto-initialized to neutral on signup. Run `node setup-reputation.js` after adding new factions.
+- Asset system — organized under `assets/characters/{slug}/`, `assets/factions/{slug}/`, `assets/places/{slug}/`. Use `process-assets.js` drop folder workflow to add new images. Run `sync-assets.js` to verify.
+  - Characters with assets: bloodhound, mongrel, dozer, aurora-edge, smiles (profile + cutout)
+  - Places with assets: mongrels-towing-yard (background)
 - Backend fully on Netlify Functions (auto-deploys with git push)
 - Live at https://myherogame.netlify.app
 
 **What's NOT built yet (next steps toward MVP):**
-1. **Feed content** — Only sample/test posts exist. DM needs to write real Streetview articles, Daily Dollar news, myHERO job listings, and NPC Bliink posts
+1. **Feed content** — Only sample/test posts exist. DM needs to write real Streetview articles, Daily Dollar news, myHERO job listings, NPC Bliink posts, and The Times Today articles
 2. **Missions** — The choose-your-own-adventure branching system (core gameplay). Data structure, UI, branching logic, answer recording
 3. **Admin dashboard** — DM tools to manage content, review posts, update stats, run the game without editing Sheets directly
 

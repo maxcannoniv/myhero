@@ -20,7 +20,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [x] **1.3 Backend** — Netlify Functions (replaced Apps Script). Auto-deploys with git push.
 - [x] **1.4 Login system** — Username/password with hashed passwords, login form
 - [x] **1.5 Signup system** — Account creation with hero name, class selection, skill point allocation
-- [x] **1.6 Dashboard shell** — Phone-style terminal with 8 app icons, status bar, profile with aggregates + skills
+- [x] **1.6 Dashboard shell** — Phone-style terminal with 9 app icons (3×3 grid), status bar, profile with aggregates + skills
 - [x] **1.7 Landing page** — In-universe "Emergency Alert" from the Mayor
 - [x] **1.8 Classes page** — 10 archetypes framed as "Roles We Need Most"
 - [ ] **1.9 Test full flow end-to-end** — Landing → Classes → Signup → Dashboard → Logout → Login
@@ -65,18 +65,33 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [x] **3.5.4 Retire Apps Script** — Apps Script restricted. All traffic goes through Netlify Functions.
 
 ### Phase 4: Feeds — COMPLETE
-> All 4 feeds are live with distinct visual styles.
+> All 5 feeds are live with distinct visual styles.
 
 - [x] **4.1 Unified Feeds tab** — Single Sheets tab with `feed` column for filtering
 - [x] **4.2 Streetview feed** — Noir/dark brown style. Posts are anonymous (Bloodhound must be discovered).
 - [x] **4.3 Daily Dollar feed** — WSJ/newspaper cream style
 - [x] **4.4 myHERO feed** — Job board card style
 - [x] **4.5 Bliink feed** — Instagram dark style with image posts
-- [x] **4.6 Bliink posting** — Preset image picker + caption composer. Posts saved to Feeds tab.
-- [ ] **4.7 Bliink moderation queue** — New posts go to `visible: no`, DM reviews. Styled as "Bliink Quality Control" in-universe
-- [ ] **4.8 Custom image uploads** — Players submit own images (behind moderation wall)
-- [ ] **4.9 Interactions** — Likes, comments (simple versions)
-- [ ] **4.10 Tagging** — Tag other characters in posts
+- [x] **4.6 Bliink posting** — CSS-layered compositing: background scene picker + optional character cutout picker + live preview + caption. Both `image_url` (background) and `cutout_url` (cutout) saved to Feeds tab.
+- [x] **4.7 The Times Today feed** — Local broadsheet newspaper style (newsprint palette, Georgia serif). Feed key: `todaystidbit`. Tagline: "same time, different day".
+- [x] **4.8 `[Name]` clickable syntax** — DM writes `[Mongrel]` in any post body → renders as a clickable character link in all feeds
+- [ ] **4.9 Bliink moderation queue** — New posts go to `visible: no`, DM reviews. Styled as "Bliink Quality Control" in-universe
+- [ ] **4.10 Custom image uploads** — Players submit own images (behind moderation wall)
+- [ ] **4.11 Interactions** — Likes, comments (simple versions)
+- [ ] **4.12 Tagging** — Tag other characters in posts
+
+### Phase 4.5: World Systems — COMPLETE
+> Factions, reputation, character popups, and asset management.
+
+- [x] **4.5.1 Character profile popups** — Full trading-card layout: large image flush at top, name/faction_role/faction/bio/actions below. Accessible by clicking any character name in any feed.
+- [x] **4.5.2 Faction popups** — Clicking a faction name opens a faction card: name, description, leader (clickable), member list (if `members_public = yes`). All members are clickable.
+- [x] **4.5.3 Faction role column** — Characters tab has `faction_role` (e.g. "Private Eye", "Owner of Mongrel's Towing"). Shown in popup instead of class/archetype.
+- [x] **4.5.4 Reputation system** — Reputation tab: `hero_name`, `faction_name`, `reputation` (hostile/negative/neutral/positive/ally). Auto-initialized to neutral on signup. Run `setup-reputation.js` after adding new factions.
+- [x] **4.5.5 Asset system** — All visual assets under `assets/characters/{slug}/`, `assets/factions/{slug}/`, `assets/places/{slug}/`. Served directly by Netlify — no external image hosting needed.
+- [x] **4.5.6 Drop folder automation** — `process-assets.js` reads `_drop/{characters,cutouts,factions,places}/`, slugifies filenames, moves files to `assets/`, updates Sheets `asset_slug`, updates `BLIINK_CUTOUTS`/`BLIINK_BACKGROUNDS` in `dashboard.js`.
+- [x] **4.5.7 Asset verification** — `sync-assets.js` cross-references `assets/` folders vs. Sheets. Read-only checker, safe to run anytime.
+- [ ] **4.5.8 Reputation affects visibility** — Higher reputation unlocks more info about a faction or its members (future mechanic)
+- [ ] **4.5.9 Faction banners in popup** — Show faction banner image at top of faction card (assets exist for some factions)
 
 ### Phase 5: Messaging — COMPLETE
 > 1-on-1 messaging with contact discovery.
@@ -105,8 +120,9 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [ ] **7.1 Write Streetview articles** — Bloodhound's anonymous investigator blog posts
 - [ ] **7.2 Write Daily Dollar articles** — News/finance stories about the city
 - [ ] **7.3 Write myHERO job listings** — Hero jobs, missions, activity posts
-- [ ] **7.4 Write NPC Bliink posts** — Social media posts from NPCs (Mongrel, Dozer, etc.)
-- [ ] **7.5 DM posting from admin dashboard** — Post content without editing Sheets directly (requires Phase 3)
+- [ ] **7.4 Write NPC Bliink posts** — Use compositing system: pick a background + character cutout, add caption
+- [ ] **7.5 Write The Times Today articles** — City-wide updates all players should see
+- [ ] **7.6 DM posting from admin dashboard** — Post content without editing Sheets directly (requires Phase 3)
 
 ### Phase 8: Influence & Mechanics
 > The systems that make the game feel alive.
@@ -170,11 +186,14 @@ Before the game is ready for players:
 - [ ] **Streetview posts** — real articles for Bloodhound's anonymous blog (replace sample content in Sheets)
 - [ ] **Daily Dollar posts** — real news/finance articles (replace sample content in Sheets)
 - [ ] **myHERO job listings** — hero jobs and activity posts (replace sample content)
-- [ ] **NPC Bliink posts** — social media posts from NPCs to populate the feed
-- [x] ~~**NPC characters**~~ — Bloodhound, Mongrel, Dozer, Head Honcho created
+- [ ] **The Times Today articles** — city-wide updates all players should see
+- [ ] **NPC Bliink posts** — social media posts from NPCs (use compositing system: background + cutout)
+- [x] ~~**NPC characters**~~ — Bloodhound, Mongrel, Dozer, Head Honcho, Aurora Edge, Smiles created
 - [x] ~~**Faction list**~~ — 5 factions created in Sheets
 - [x] ~~**Class starting defaults**~~ — Done, applied at signup
 - [x] ~~**Authority scale definition**~~ — F through SS defined
+- [x] ~~**Character profile photos**~~ — bloodhound, mongrel, dozer, aurora-edge, smiles
+- [x] ~~**Character cutouts**~~ — bloodhound, mongrel, dozer, aurora-edge, smiles (for Bliink compositing)
 
 ---
 
@@ -182,16 +201,23 @@ Before the game is ready for players:
 
 These came up in conversation and should be addressed in future sessions:
 
-- **Clout formula** — Faction standing × faction power multiplier, details TBD
-- **Admin dashboard** — DM tools for managing NPCs, factions, content, stats, missions
+- **Cycle system** — Three-layer time structure: Real Time (timestamped actions, logs only) → Cycles (DM-controlled resolution windows, labeled C-001, C-002, etc.) → Arcs (narrative containers, multiple cycles). Engineering scope: Settings tab in Sheets with `current_cycle` value; `cycle_id` column on Feeds (and later Missions); backend stamps current cycle on every post. DM manually increments cycle in Sheets. *Arcs are a narrative planning tool — not engineered yet.*
+- **Cycle Summary post** — After each Cycle closes, DM publishes a summary to The Times Today. A dedicated admin feed and/or personal player summaries are future ideas (too much DM work for now).
+- **Arc system** — Narrative containers spanning multiple Cycles (central threat, escalation path, planned beats, end condition). Arcs escalate from Street → City → Global scale. Not urgent to engineer — DM planning tool first.
+- **Stock market** — Future system, likely tied to Commerce skill and Daily Dollar feed. No design yet.
+- **Thread system** — Narrative sub-structure within Arcs. Design TBD.
+- **Clout formula** — Faction standing × faction power multiplier, details TBD. Reputation tab exists but clout calculation is not wired up yet.
+- **Admin dashboard** — DM tools for managing NPCs, factions, content, stats, missions. Top priority after Missions.
 - **Bliink moderation** — New posts go to `visible: no`, DM reviews. "Bliink Quality Control" in-universe.
 - **Custom image uploads for Bliink** — Behind moderation wall
 - **Tagging other characters** — In posts and messages, works for both player and NPC characters
 - **Feed influence mechanics** — Higher aggregate scores = more impact on the game world through posts
 - **Mission content math** — 3 questions × 2 choices = 7 questions per mission; 3 questions × 3 choices = 13 per mission
-- **Inventory system** — Items + notes in inventory, displayed in Inventory app
-- **Notebook system** — Secret content loaded by content_id, popup overlay display
+- **Inventory system** — Inventory tab in Sheets exists (schema defined), but Inventory app on terminal shows "Coming Soon"
+- **Notebook system** — NoteContent tab schema defined, but not built. Secret content loaded by content_id, popup overlay display.
 - **Save-as-note from messages** — Players save NPC messages as notes to notebook
+- **Reputation visibility gating** — Using reputation level to control what info players can see about factions/characters
+- **Faction banners in faction popup** — Asset structure supports it (`assets/factions/{slug}/banner.png`), not yet wired into the faction popup UI
 
 ---
 

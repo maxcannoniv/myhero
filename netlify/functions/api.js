@@ -42,6 +42,54 @@ function rowsToObjects(data) {
 }
 
 // -----------------------------------------------
+// CYCLE HELPERS
+// -----------------------------------------------
+
+// Read current cycle number and start timestamp from the Settings tab.
+// Returns { cycle: 1, cycleStart: '2026-02-19T...' }
+// Falls back to cycle 1 with no start if Settings tab doesn't exist yet.
+async function getCurrentCycle(sheets) {
+  try {
+    var rows = await readTab(sheets, 'Settings');
+    var settings = {};
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i] && rows[i][0]) {
+        settings[rows[i][0]] = rows[i][1] || '';
+      }
+    }
+    return {
+      cycle: parseInt(settings['current_cycle']) || 1,
+      cycleStart: settings['cycle_start'] || null
+    };
+  } catch (e) {
+    // Settings tab doesn't exist yet — fail gracefully
+    return { cycle: 1, cycleStart: null };
+  }
+}
+
+// Compute the cycle_id string for a post created right now.
+// Format: [cycle].[days].[hours].[10-min-block]
+// Example: 1.00.00.0 = Cycle 1, just started
+//          1.02.15.3 = Cycle 1, 2 days and 15 hours and 30-39 min since cycle started
+function computeCycleId(cycle, cycleStart) {
+  if (!cycleStart) return cycle + '.00.00.0';
+
+  var start = new Date(cycleStart);
+  var now = new Date();
+  var elapsed = Math.max(0, now - start); // milliseconds, clamped to 0
+
+  var totalMinutes = Math.floor(elapsed / (1000 * 60));
+  var days = Math.floor(totalMinutes / (60 * 24));
+  var hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  var minuteBlock = Math.floor((totalMinutes % 60) / 10); // 0-5
+
+  return cycle + '.' +
+    String(days).padStart(2, '0') + '.' +
+    String(hours).padStart(2, '0') + '.' +
+    minuteBlock;
+}
+
+// -----------------------------------------------
 // HANDLERS
 // -----------------------------------------------
 
@@ -240,6 +288,10 @@ async function handleCreatePost(data) {
     String(now.getHours()).padStart(2, '0') + ':' +
     String(now.getMinutes()).padStart(2, '0');
 
+  // Stamp the current cycle onto this post
+  var cycleInfo = await getCurrentCycle(sheets);
+  var cycleId = computeCycleId(cycleInfo.cycle, cycleInfo.cycleStart);
+
   var newRow = [
     data.feed,
     data.posted_by,
@@ -249,7 +301,8 @@ async function handleCreatePost(data) {
     data.body,
     timestamp,
     'yes',
-    data.cutout_url || ''
+    data.cutout_url || '',
+    cycleId
   ];
 
   await sheets.spreadsheets.values.append({
@@ -370,11 +423,15 @@ async function handleSendMessage(data) {
     String(now.getHours()).padStart(2, '0') + ':' +
     String(now.getMinutes()).padStart(2, '0');
 
+  // Stamp the current cycle onto this message
+  var cycleInfo = await getCurrentCycle(sheets);
+  var cycleId = computeCycleId(cycleInfo.cycle, cycleInfo.cycleStart);
+
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
     range: 'Messages!A:A',
     valueInputOption: 'RAW',
-    requestBody: { values: [[data.from, data.to, data.body, timestamp, 'no']] }
+    requestBody: { values: [[data.from, data.to, data.body, timestamp, 'no', cycleId]] }
   });
 
   // Auto-add to contacts if not already there
