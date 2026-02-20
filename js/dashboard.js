@@ -684,8 +684,11 @@ var BLIINK_BACKGROUNDS = [
 // Character cutouts for layering over backgrounds.
 // Add an entry here when you add assets/characters/{slug}/cutout.png.
 var BLIINK_CUTOUTS = [
-  // { label: 'Bloodhound', url: '/assets/characters/bloodhound/cutout.png' },
-  // { label: 'Mongrel',    url: '/assets/characters/mongrel/cutout.png' },
+  { label: 'Bloodhound',  url: '/assets/characters/bloodhound/cutout.png' },
+  { label: 'Mongrel',     url: '/assets/characters/mongrel/cutout.png' },
+  { label: 'Dozer',       url: '/assets/characters/dozer/cutout.png' },
+  { label: 'Aurora Edge', url: '/assets/characters/aurora-edge/cutout.png' },
+  { label: 'Smiles',      url: '/assets/characters/smiles/cutout.png' },
 ];
 
 var selectedBgUrl = null;
