@@ -354,6 +354,45 @@
     </div>
   </div>
 
+  <!-- Mission Overlay — full-screen, covers the terminal while a mission is active -->
+  <div class="mission-overlay" id="missionOverlay" style="display: none;">
+
+    <!-- Top: large image area -->
+    <div class="mission-image-area" id="missionImageArea">
+      <img class="mission-current-image" id="missionCurrentImage" src="" alt="" style="display: none;">
+      <!-- Flavor text shown briefly after each choice -->
+      <div class="mission-flavor" id="missionFlavor"></div>
+    </div>
+
+    <!-- Panel 1: Question (shown while answering questions) -->
+    <div class="mission-question-panel" id="missionQuestionPanel" style="display: none;">
+      <div class="mission-question-num" id="missionQuestionNum"></div>
+      <div class="mission-question-text" id="missionQuestionText"></div>
+      <div class="mission-options" id="missionOptions"></div>
+      <button class="mission-abandon-btn" id="missionAbandonBtn">Abandon Mission</button>
+    </div>
+
+    <!-- Panel 2: Confirm submit (shown after final question) -->
+    <div class="mission-confirm-panel" id="missionConfirmPanel" style="display: none;">
+      <div class="mission-confirm-title">Submit Mission?</div>
+      <div class="mission-confirm-text">Your choices are locked in. This cannot be undone.</div>
+      <div class="mission-confirm-actions">
+        <button class="btn btn-primary" id="missionConfirmBtn">Submit</button>
+        <button class="btn btn-secondary" id="missionConfirmCancelBtn">Cancel</button>
+      </div>
+      <div class="mission-submit-status" id="missionSubmitStatus"></div>
+    </div>
+
+    <!-- Panel 3: Outcome (shown when DM marks resolved = yes) -->
+    <div class="mission-outcome-panel" id="missionOutcomePanel" style="display: none;">
+      <div class="mission-outcome-label" id="missionOutcomeLabel"></div>
+      <div class="mission-outcome-narrative" id="missionOutcomeNarrative"></div>
+      <div class="mission-outcome-changes" id="missionOutcomeChanges"></div>
+      <button class="btn btn-primary" id="missionOutcomeCloseBtn">Close</button>
+    </div>
+
+  </div>
+
   <script src="js/sheets.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/dashboard.js"></script>

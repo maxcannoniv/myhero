@@ -44,8 +44,11 @@ appIcons.forEach(function(icon) {
       // Show the app
       appView.classList.add('active');
 
-      // Load feed data if this is a feed app and hasn't been loaded yet
-      if (!feedsLoaded[appName] && ['streetview', 'dailydollar', 'myhero', 'bliink', 'todaystidbit'].indexOf(appName) !== -1) {
+      // myHERO always reloads (missions need fresh state per player)
+      if (appName === 'myhero') {
+        loadMyHeroFeed();
+      // Other feeds load once and cache for the session
+      } else if (!feedsLoaded[appName] && ['streetview', 'dailydollar', 'bliink', 'todaystidbit'].indexOf(appName) !== -1) {
         loadFeed(appName);
         feedsLoaded[appName] = true;
       }
@@ -679,8 +682,8 @@ var BLIINK_BACKGROUNDS = [
   { label: 'On the Job',   url: 'https://placehold.co/600x600/2e2a1a/f5c518?text=ON+THE+JOB' },
   { label: 'Selfie',       url: 'https://placehold.co/600x600/1a1a2e/e94560?text=SELFIE' },
   { label: 'Meetup',       url: 'https://placehold.co/600x600/1a2e2e/4fc3f7?text=MEETUP' },
-  { label: 'Victory',      url: 'https://placehold.co/600x600/2e1a1a/f5c518?text=VICTORY' }
-  { label: 'Mongrel's Towing Yard', url: '/assets/places/mongrels-towing-yard/background.png' },
+  { label: 'Victory',      url: 'https://placehold.co/600x600/2e1a1a/f5c518?text=VICTORY' },
+  { label: "Mongrel's Towing Yard", url: '/assets/places/mongrels-towing-yard/background.png' },
 ];
 
 // Character cutouts for layering over backgrounds.
@@ -843,6 +846,299 @@ if (bliinkPostBtn) {
     });
   });
 }
+
+// -----------------------------------------------
+// MYHERO FEED — missions + regular posts
+// -----------------------------------------------
+
+// Load the myHERO app: missions at top, then regular posts.
+// Called every time the app opens so mission states stay current.
+function loadMyHeroFeed() {
+  var container = document.getElementById('feed-myhero');
+  if (!container) return;
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  var username = session && session.username ? session.username : null;
+
+  // Fetch missions and regular feed posts at the same time
+  Promise.all([
+    sheetsGetMissions(username),
+    sheetsGetFeed('myhero')
+  ]).then(function(results) {
+    var missionsResult = results[0];
+    var feedResult = results[1];
+    container.innerHTML = '';
+
+    // --- Missions section ---
+    if (missionsResult.success && missionsResult.missions && missionsResult.missions.length > 0) {
+      var mHeader = document.createElement('div');
+      mHeader.className = 'mh-section-header';
+      mHeader.textContent = 'Active Missions';
+      container.appendChild(mHeader);
+
+      missionsResult.missions.forEach(function(mission) {
+        container.appendChild(renderMissionCard(mission));
+      });
+    }
+
+    // --- Regular posts section ---
+    if (feedResult.success && feedResult.posts && feedResult.posts.length > 0) {
+      var pHeader = document.createElement('div');
+      pHeader.className = 'mh-section-header';
+      pHeader.textContent = 'Jobs & Announcements';
+      container.appendChild(pHeader);
+
+      feedResult.posts.forEach(function(post) {
+        container.appendChild(renderPost('myhero', post));
+      });
+      makeNamesClickable(container);
+    }
+
+    if (container.children.length === 0) {
+      container.innerHTML = '<div class="feed-empty">Nothing posted yet.</div>';
+    }
+  });
+}
+
+// Render a single mission card.
+// The card shows one of three states:
+//   available  — "Begin Mission" button
+//   submitted  — "Awaiting Resolution" badge
+//   resolved   — "Read Outcome" button
+function renderMissionCard(mission) {
+  var card = document.createElement('div');
+  card.className = 'mission-card';
+
+  var html = '';
+  if (mission.image_url) {
+    html += '<img class="mission-card-image" src="' + mission.image_url + '" alt="">';
+  }
+  html += '<div class="mission-card-content">';
+  html += '<h3 class="mission-card-title">' + (mission.title || 'Mission') + '</h3>';
+  html += '<p class="mission-card-desc">' + (mission.description || '') + '</p>';
+
+  if (mission.state === 'available') {
+    html += '<button class="btn btn-primary mission-begin-btn">Begin Mission</button>';
+  } else if (mission.state === 'submitted') {
+    var stamp = (mission.submission && mission.submission.cycle_id)
+      ? 'C-' + mission.submission.cycle_id
+      : 'Submitted';
+    html += '<div class="mission-submitted-badge">Awaiting Resolution &mdash; ' + stamp + '</div>';
+  } else if (mission.state === 'resolved') {
+    html += '<button class="btn btn-secondary mission-outcome-btn">Read Outcome</button>';
+  }
+
+  html += '</div>';
+  card.innerHTML = html;
+
+  // Wire up buttons
+  var beginBtn = card.querySelector('.mission-begin-btn');
+  if (beginBtn) {
+    beginBtn.addEventListener('click', function() { startMission(mission); });
+  }
+
+  var outcomeBtn = card.querySelector('.mission-outcome-btn');
+  if (outcomeBtn) {
+    outcomeBtn.addEventListener('click', function() { openMissionOutcome(mission); });
+  }
+
+  return card;
+}
+
+// -----------------------------------------------
+// MISSION OVERLAY — question flow and outcome
+// -----------------------------------------------
+
+var activeMission = null;      // the mission object from the feed
+var activeQuestions = null;    // array of { question_text, options: [] } grouped by question_num
+var currentQuestionIndex = 0;
+var playerAnswers = [];        // option_ids selected by the player, in order
+
+// Begin a mission — fetch its questions and open the overlay
+function startMission(mission) {
+  var username = session && session.username ? session.username : null;
+  if (!username) return;
+
+  sheetsGetMissionQuestions(mission.mission_id).then(function(result) {
+    if (!result.success || !result.questions || result.questions.length === 0) {
+      alert('This mission is not available right now.');
+      return;
+    }
+
+    activeMission = mission;
+    activeQuestions = groupQuestions(result.questions);
+    currentQuestionIndex = 0;
+    playerAnswers = [];
+
+    // Set the opening image
+    setMissionImage(mission.image_url);
+    document.getElementById('missionFlavor').textContent = '';
+
+    showMissionOverlay('question');
+    renderCurrentQuestion();
+  });
+}
+
+// Group flat question rows (one per option) into:
+// [ { question_text: '...', options: [ { option_id, option_text, option_image, option_flavor }, ... ] }, ... ]
+// Sorted by question_num so order is preserved.
+function groupQuestions(rows) {
+  var grouped = {};
+  rows.forEach(function(row) {
+    var num = row.question_num;
+    if (!grouped[num]) {
+      grouped[num] = { question_text: row.question_text, options: [] };
+    }
+    grouped[num].options.push({
+      option_id: row.option_id,
+      option_text: row.option_text,
+      option_image: row.option_image,
+      option_flavor: row.option_flavor
+    });
+  });
+  // Sort by the question_num value (numeric sort)
+  return Object.keys(grouped)
+    .sort(function(a, b) { return Number(a) - Number(b); })
+    .map(function(num) { return grouped[num]; });
+}
+
+// Render the current question into the overlay
+function renderCurrentQuestion() {
+  var q = activeQuestions[currentQuestionIndex];
+  var total = activeQuestions.length;
+
+  document.getElementById('missionQuestionNum').textContent =
+    'Question ' + (currentQuestionIndex + 1) + ' of ' + total;
+  document.getElementById('missionQuestionText').textContent = q.question_text;
+
+  var optionsEl = document.getElementById('missionOptions');
+  optionsEl.innerHTML = '';
+
+  q.options.forEach(function(opt) {
+    var btn = document.createElement('button');
+    btn.className = 'mission-option-btn';
+    btn.textContent = opt.option_text;
+
+    btn.addEventListener('click', function() {
+      // Lock all options immediately to prevent double-tap
+      optionsEl.querySelectorAll('.mission-option-btn').forEach(function(b) {
+        b.disabled = true;
+      });
+      btn.classList.add('selected');
+
+      // Record the answer
+      playerAnswers.push(opt.option_id);
+
+      // Show flavor text and swap image if the option has them
+      var flavorEl = document.getElementById('missionFlavor');
+      flavorEl.textContent = opt.option_flavor || '';
+
+      if (opt.option_image) {
+        setMissionImage(opt.option_image);
+      }
+
+      // After a short pause, advance to the next question or confirm screen
+      var delay = opt.option_flavor ? 1200 : 400;
+      setTimeout(function() {
+        flavorEl.textContent = '';
+        currentQuestionIndex++;
+        if (currentQuestionIndex < activeQuestions.length) {
+          renderCurrentQuestion();
+        } else {
+          showMissionOverlay('confirm');
+        }
+      }, delay);
+    });
+
+    optionsEl.appendChild(btn);
+  });
+}
+
+// Show or swap the image in the mission overlay
+function setMissionImage(url) {
+  var img = document.getElementById('missionCurrentImage');
+  if (url) {
+    img.src = url;
+    img.style.display = 'block';
+  } else {
+    img.style.display = 'none';
+  }
+}
+
+// Switch the overlay between modes: 'question', 'confirm', 'outcome'
+function showMissionOverlay(mode) {
+  document.getElementById('missionOverlay').style.display = 'flex';
+  document.getElementById('missionQuestionPanel').style.display = mode === 'question' ? 'flex' : 'none';
+  document.getElementById('missionConfirmPanel').style.display = mode === 'confirm' ? 'flex' : 'none';
+  document.getElementById('missionOutcomePanel').style.display = mode === 'outcome' ? 'flex' : 'none';
+}
+
+// Close the overlay and reset all mission state
+function closeMissionOverlay() {
+  document.getElementById('missionOverlay').style.display = 'none';
+  activeMission = null;
+  activeQuestions = null;
+  currentQuestionIndex = 0;
+  playerAnswers = [];
+  document.getElementById('missionSubmitStatus').textContent = '';
+  document.getElementById('missionConfirmBtn').disabled = false;
+}
+
+// Confirm submit — send answers to the backend
+document.getElementById('missionConfirmBtn').addEventListener('click', function() {
+  var statusEl = document.getElementById('missionSubmitStatus');
+  statusEl.textContent = 'Submitting...';
+  document.getElementById('missionConfirmBtn').disabled = true;
+
+  var username = session && session.username ? session.username : null;
+  var heroName = session && session.hero ? session.hero.hero_name : null;
+
+  sheetsSubmitMission({
+    username: username,
+    heroName: heroName,
+    missionId: activeMission.mission_id,
+    answers: playerAnswers
+  }).then(function(result) {
+    if (result.success) {
+      closeMissionOverlay();
+      // Reload myHERO to show "Awaiting Resolution" state
+      loadMyHeroFeed();
+    } else {
+      document.getElementById('missionConfirmBtn').disabled = false;
+      statusEl.textContent = result.error || 'Submission failed. Try again.';
+    }
+  });
+});
+
+// Cancel from confirm screen — abandon the mission attempt (answers not saved)
+document.getElementById('missionConfirmCancelBtn').addEventListener('click', function() {
+  closeMissionOverlay();
+});
+
+// Abandon button during the question flow
+document.getElementById('missionAbandonBtn').addEventListener('click', function() {
+  closeMissionOverlay();
+});
+
+// Open the outcome screen for a resolved mission
+function openMissionOutcome(mission) {
+  if (!mission.outcome) return;
+
+  // Show outcome image if one exists, otherwise fall back to the mission image
+  setMissionImage(mission.outcome.image || mission.image_url);
+  document.getElementById('missionFlavor').textContent = '';
+
+  document.getElementById('missionOutcomeLabel').textContent = mission.outcome.label || 'Mission Resolved';
+  document.getElementById('missionOutcomeNarrative').textContent = mission.outcome.narrative || '';
+  document.getElementById('missionOutcomeChanges').textContent = mission.outcome.changes || '';
+
+  showMissionOverlay('outcome');
+}
+
+// Close the outcome screen
+document.getElementById('missionOutcomeCloseBtn').addEventListener('click', function() {
+  closeMissionOverlay();
+});
 
 // -----------------------------------------------
 // LOAD HERO DATA

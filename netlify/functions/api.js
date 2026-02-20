@@ -527,6 +527,192 @@ async function handleGetFaction(data) {
   return result;
 }
 
+// -----------------------------------------------
+// MISSIONS
+// -----------------------------------------------
+
+// Get all visible missions with per-player state (available / submitted / resolved).
+// For resolved missions, includes the outcome narrative + changes.
+// option_weight is NEVER sent to the client — it's only used server-side in submitMission.
+async function handleGetMissions(data) {
+  var sheets = getSheets();
+  var username = data.username;
+
+  // Fetch missions and this player's submissions at the same time
+  var results = await Promise.all([
+    readTab(sheets, 'Missions'),
+    readTab(sheets, 'MissionSubmissions')
+  ]);
+  var missions = rowsToObjects(results[0]);
+  var submissions = rowsToObjects(results[1]);
+
+  // Only show visible missions
+  missions = missions.filter(function(m) { return m.visible === 'yes'; });
+
+  // Build a map of mission_id -> submission for this player
+  var playerSubs = {};
+  submissions.forEach(function(s) {
+    if (s.username === username) {
+      playerSubs[s.mission_id] = s;
+    }
+  });
+
+  // Attach state and outcome data to each mission
+  var response = missions.map(function(m) {
+    var sub = playerSubs[m.mission_id];
+    var state = 'available';
+    var outcomeData = null;
+    var submissionInfo = null;
+
+    if (sub) {
+      if (sub.resolved === 'yes') {
+        state = 'resolved';
+        // dm_override takes priority over auto-computed bucket
+        var bucket = (sub.dm_override && sub.dm_override.trim()) ? sub.dm_override.trim() : sub.outcome_bucket;
+        if (bucket === 'a' || bucket === 'b' || bucket === 'c') {
+          outcomeData = {
+            label: m['outcome_' + bucket + '_label'] || 'Outcome',
+            narrative: m['outcome_' + bucket + '_narrative'] || '',
+            image: m['outcome_' + bucket + '_image'] || '',
+            changes: m['outcome_' + bucket + '_changes'] || ''
+          };
+        }
+      } else {
+        state = 'submitted';
+      }
+      submissionInfo = { cycle_id: sub.cycle_id };
+    }
+
+    return {
+      mission_id: m.mission_id,
+      title: m.title,
+      description: m.description,
+      image_url: m.image_url,
+      cycle_id: m.cycle_id,
+      state: state,
+      submission: submissionInfo,
+      outcome: outcomeData
+    };
+  });
+
+  return { success: true, missions: response };
+}
+
+// Get all questions + options for a mission.
+// option_weight is stripped — never sent to the client.
+async function handleGetMissionQuestions(data) {
+  var sheets = getSheets();
+  var missionId = data.missionId;
+
+  if (!missionId) {
+    return { success: false, error: 'Missing missionId.' };
+  }
+
+  var rows = await readTab(sheets, 'MissionQuestions');
+  var allRows = rowsToObjects(rows);
+
+  var questions = allRows
+    .filter(function(q) { return q.mission_id === missionId; })
+    .map(function(q) {
+      // Return all fields EXCEPT option_weight
+      return {
+        mission_id: q.mission_id,
+        question_num: q.question_num,
+        question_text: q.question_text,
+        option_id: q.option_id,
+        option_text: q.option_text,
+        option_image: q.option_image,
+        option_flavor: q.option_flavor
+        // option_weight intentionally excluded
+      };
+    });
+
+  return { success: true, questions: questions };
+}
+
+// Record a player's mission answers, compute the outcome bucket, and write to MissionSubmissions.
+async function handleSubmitMission(data) {
+  var sheets = getSheets();
+
+  if (!data.username || !data.heroName || !data.missionId || !data.answers || data.answers.length === 0) {
+    return { success: false, error: 'Missing required fields.' };
+  }
+
+  // Prevent duplicate submissions
+  var subRows = await readTab(sheets, 'MissionSubmissions');
+  var existing = rowsToObjects(subRows);
+  var alreadySubmitted = existing.some(function(s) {
+    return s.username === data.username && s.mission_id === data.missionId;
+  });
+  if (alreadySubmitted) {
+    return { success: false, error: 'Already submitted.' };
+  }
+
+  // Fetch questions to get option_weight values
+  var qRows = await readTab(sheets, 'MissionQuestions');
+  var allQuestions = rowsToObjects(qRows);
+  var missionQuestions = allQuestions.filter(function(q) {
+    return q.mission_id === data.missionId;
+  });
+
+  // Map option_id -> option_weight
+  var weightMap = {};
+  missionQuestions.forEach(function(q) {
+    if (q.option_id) weightMap[q.option_id] = q.option_weight;
+  });
+
+  // Count weights across all answers
+  var counts = { a: 0, b: 0, c: 0 };
+  data.answers.forEach(function(answerId) {
+    var w = weightMap[answerId];
+    if (w === 'a') counts.a++;
+    else if (w === 'b') counts.b++;
+    else if (w === 'c') counts.c++;
+  });
+
+  // Majority wins. Ties: a beats b beats c.
+  var bucket = 'a';
+  if (counts.b > counts.a && counts.b >= counts.c) bucket = 'b';
+  else if (counts.c > counts.a && counts.c > counts.b) bucket = 'c';
+
+  var submissionId = 'sub-' + Date.now();
+  var now = new Date();
+  var timestamp = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + ' ' +
+    String(now.getHours()).padStart(2, '0') + ':' +
+    String(now.getMinutes()).padStart(2, '0');
+
+  var cycleInfo = await getCurrentCycle(sheets);
+  var cycleId = computeCycleId(cycleInfo.cycle, cycleInfo.cycleStart);
+
+  // Pad answers to 4 slots (q1–q4 columns)
+  var answers = data.answers.slice(0, 4);
+  while (answers.length < 4) answers.push('');
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'MissionSubmissions!A:A',
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [[
+        submissionId,
+        data.username,
+        data.heroName,
+        data.missionId,
+        answers[0], answers[1], answers[2], answers[3],
+        bucket,
+        '',    // dm_override — DM fills this in Sheets if needed
+        'no',  // resolved — DM changes to 'yes' after review
+        cycleId,
+        timestamp
+      ]]
+    }
+  });
+
+  return { success: true };
+}
+
 // Get a character's public profile
 async function handleGetCharacter(data) {
   var sheets = getSheets();
@@ -587,6 +773,9 @@ exports.handler = async function(event) {
     else if (action === 'addContact') result = await handleAddContact(data);
     else if (action === 'getCharacter') result = await handleGetCharacter(data);
     else if (action === 'getFaction') result = await handleGetFaction(data);
+    else if (action === 'getMissions') result = await handleGetMissions(data);
+    else if (action === 'getMissionQuestions') result = await handleGetMissionQuestions(data);
+    else if (action === 'submitMission') result = await handleSubmitMission(data);
     else result = { success: false, error: 'Unknown action: ' + action };
 
     return {

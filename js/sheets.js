@@ -127,3 +127,17 @@ async function sheetsGetCharacter(characterName) {
 async function sheetsGetFaction(factionName) {
   return await callAppsScript('getFaction', { factionName: factionName });
 }
+
+// --- Missions ---
+
+async function sheetsGetMissions(username) {
+  return await callAppsScript('getMissions', { username: username });
+}
+
+async function sheetsGetMissionQuestions(missionId) {
+  return await callAppsScript('getMissionQuestions', { missionId: missionId });
+}
+
+async function sheetsSubmitMission(data) {
+  return await callAppsScript('submitMission', data);
+}
