@@ -317,6 +317,7 @@ function loadInbox() {
       result.threads.forEach(function(thread) {
         var item = document.createElement('div');
         item.className = 'msg-inbox-item';
+        item.setAttribute('data-contact', thread.contact);
         if (thread.unread > 0) item.classList.add('msg-unread');
 
         var preview = thread.lastMessage.body || '';
@@ -354,6 +355,14 @@ function openThread(contactName) {
 
   var threadDiv = document.getElementById('threadMessages');
   threadDiv.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  // Optimistically clear unread badge for this contact right away
+  var inboxItem = document.querySelector('.msg-inbox-item[data-contact="' + contactName + '"]');
+  if (inboxItem) {
+    inboxItem.classList.remove('msg-unread');
+    var badge = inboxItem.querySelector('.msg-unread-badge');
+    if (badge) badge.remove();
+  }
 
   sheetsGetThread(heroName, contactName).then(function(result) {
     threadDiv.innerHTML = '';

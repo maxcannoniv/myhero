@@ -771,6 +771,51 @@ body {
 .roster-card-player { color: var(--accent-green); }
 .roster-card-hidden { opacity: 0.5; }
 
+/* ===== ASSET GALLERY ===== */
+.asset-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.asset-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-comic);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.asset-thumb {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.05);
+  display: block;
+}
+.asset-card-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.asset-url-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.asset-url-text {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .form-section-title {
   font-family: var(--font-comic);
   font-size: 1rem;

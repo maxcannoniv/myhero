@@ -1580,6 +1580,87 @@ async function handleAdminGetPlaces(data) {
   }
 }
 
+// Create Characters tab entries for any registered player who doesn't have one yet.
+// Useful for players who signed up before the auto-create feature was added.
+async function handleAdminSyncPlayers(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  var [playerRows, charRows] = await Promise.all([
+    readTab(sheets, 'Players'),
+    readTab(sheets, 'Characters'),
+  ]);
+
+  if (playerRows.length < 2) return { success: true, created: 0 };
+
+  var players = rowsToObjects(playerRows);
+  var charHeaders = charRows.length > 0 ? charRows[0] : [];
+  var nameCol = charHeaders.indexOf('character_name');
+
+  // Build set of existing hero names in Characters tab
+  var existingNames = new Set();
+  if (nameCol !== -1) {
+    for (var i = 1; i < charRows.length; i++) {
+      if (charRows[i][nameCol]) existingNames.add(charRows[i][nameCol]);
+    }
+  }
+
+  var created = 0;
+  for (var i = 0; i < players.length; i++) {
+    var p = players[i];
+    if (p.hero_name && !existingNames.has(p.hero_name)) {
+      await addCharacterForNewPlayer(sheets, p.hero_name, p.username, p.class);
+      created++;
+    }
+  }
+
+  return { success: true, created: created };
+}
+
+// Mark all messages from a given player to a given NPC as read.
+// Called when the admin opens that NPC's conversation in the inbox.
+async function handleAdminMarkNpcMessagesRead(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  if (!data.npcName || !data.fromPlayer) {
+    return { success: false, error: 'Missing npcName or fromPlayer.' };
+  }
+
+  var rows = await readTab(sheets, 'Messages');
+  if (rows.length < 2) return { success: true, marked: 0 };
+
+  var headers = rows[0];
+  var fromCol = headers.indexOf('from_character');
+  var toCol = headers.indexOf('to_character');
+  var readCol = headers.indexOf('read');
+
+  if (fromCol === -1 || toCol === -1 || readCol === -1) {
+    return { success: false, error: 'Messages tab missing required columns.' };
+  }
+
+  var updates = [];
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][fromCol] === data.fromPlayer &&
+        rows[i][toCol] === data.npcName &&
+        rows[i][readCol] !== 'yes') {
+      updates.push({
+        range: 'Messages!' + colNumToLetter(readCol) + (i + 1),
+        values: [['yes']]
+      });
+    }
+  }
+
+  if (updates.length > 0) {
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: { valueInputOption: 'RAW', data: updates }
+    });
+  }
+
+  return { success: true, marked: updates.length };
+}
+
 // Create or update a place in the Places tab. Creates header row if tab is empty.
 async function handleAdminSavePlace(data) {
   if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
@@ -1710,6 +1791,8 @@ exports.handler = async function(event) {
     else if (action === 'adminUploadImage') result = await handleAdminUploadImage(data);
     else if (action === 'adminGetPlaces') result = await handleAdminGetPlaces(data);
     else if (action === 'adminSavePlace') result = await handleAdminSavePlace(data);
+    else if (action === 'adminSyncPlayers') result = await handleAdminSyncPlayers(data);
+    else if (action === 'adminMarkNpcMessagesRead') result = await handleAdminMarkNpcMessagesRead(data);
     else result = { success: false, error: 'Unknown action: ' + action };
 
     return {

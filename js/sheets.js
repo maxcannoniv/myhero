@@ -212,3 +212,7 @@ async function adminUploadImage(imageBase64, imageName) {
 }
 async function adminGetPlaces() { return await adminCall('adminGetPlaces'); }
 async function adminSavePlace(placeData) { return await adminCall('adminSavePlace', placeData); }
+async function adminSyncPlayers() { return await adminCall('adminSyncPlayers'); }
+async function adminMarkNpcMessagesRead(npcName, fromPlayer) {
+  return await adminCall('adminMarkNpcMessagesRead', { npcName: npcName, fromPlayer: fromPlayer });
+}

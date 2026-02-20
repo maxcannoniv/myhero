@@ -125,6 +125,7 @@ function navigateTo(section) {
     characters: loadCharacters,
     factions:   loadFactions,
     places:     loadPlaces,
+    assets:     loadAssets,
   };
 
   if (loaders[section]) loaders[section]();
@@ -256,6 +257,34 @@ function renderNpcThread() {
   var msgEl = document.getElementById('inboxMessages');
   if (msgEl) msgEl.scrollTop = msgEl.scrollHeight;
 
+  // Mark messages from this player to this NPC as read (silently — don't block the UI)
+  if (activeConvoWith && activeNpc) {
+    adminMarkNpcMessagesRead(activeNpc, activeConvoWith).then(function(result) {
+      if (result.success && result.marked > 0) {
+        // Update unread counts in local inboxData so the sidebar reflects the change
+        var npc = inboxData && inboxData.find(function(n) { return n.npcName === activeNpc; });
+        if (npc) {
+          var conv = npc.conversations.find(function(c) { return c.with === activeConvoWith; });
+          if (conv) {
+            npc.totalUnread = Math.max(0, npc.totalUnread - conv.unreadCount);
+            conv.unreadCount = 0;
+          }
+        }
+        // Re-render the NPC list to update badge counts
+        var npcList = document.getElementById('npcList');
+        if (npcList && inboxData) {
+          npcList.querySelectorAll('.inbox-npc-item').forEach(function(item) {
+            var nameEl = item.querySelector('.inbox-npc-name');
+            if (nameEl && nameEl.textContent === activeNpc) {
+              var badge = item.querySelector('.badge-unread');
+              if (badge) badge.remove();
+            }
+          });
+        }
+      }
+    });
+  }
+
   // Conversation tab clicks
   threadArea.querySelectorAll('.convo-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
@@ -330,7 +359,7 @@ async function loadComposer() {
     '<div class="form-section-title">Create Post</div>' +
     '<div class="form-row"><label>Feed</label>' +
     '<select id="cFeed" class="form-select">' +
-    '<option value="myhero">myHERO</option>' +
+    '<option value="myhero">myHERO (Jobs &amp; Announcements — appears below missions)</option>' +
     '<option value="bliink">Bliink</option>' +
     '<option value="todaystidbit">The Times Today</option>' +
     '<option value="dailydollar">Daily Dollar</option>' +
@@ -364,6 +393,18 @@ async function loadComposer() {
     '</div>'; // .two-col
 
   document.getElementById('composerSubmitBtn').addEventListener('click', handleCreatePost);
+
+  // Auto-fill Posted By Type based on which optgroup the selected name belongs to
+  document.getElementById('cPostedBy').addEventListener('change', function() {
+    var sel = this;
+    var selectedOption = sel.options[sel.selectedIndex];
+    var optgroup = selectedOption.parentElement;
+    if (optgroup && optgroup.tagName === 'OPTGROUP') {
+      var typeSelect = document.getElementById('cPostedByType');
+      if (optgroup.label === 'Characters') typeSelect.value = 'character';
+      else if (optgroup.label === 'Factions') typeSelect.value = 'faction';
+    }
+  });
 
   // Publish/unpublish buttons (delegated)
   document.getElementById('adminPostsList').addEventListener('click', async function(e) {
@@ -729,27 +770,70 @@ async function loadCharacters() {
 function renderCharactersView(characters) {
   var content = document.getElementById('adminContent');
 
+  // Split into players and NPCs for visual grouping
+  var playerChars = characters.filter(function(c) { return c.type === 'player'; });
+  var npcChars = characters.filter(function(c) { return c.type !== 'player'; });
+
+  function buildCard(c) {
+    var isHidden = c.profile_visible !== 'yes';
+    var isPlayer = c.type === 'player';
+    var borderStyle = isPlayer ? 'border-left: 3px solid var(--accent-green);' : '';
+    return '<div class="roster-card ' + (isHidden ? 'roster-card-hidden' : '') + '" data-char="' + escAttr(c.character_name) + '" style="' + borderStyle + '">' +
+      (isPlayer ? '<div style="font-size:0.6rem;font-weight:700;color:var(--accent-green);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;">PLAYER</div>' : '') +
+      '<div class="roster-card-name">' + escHtml(c.character_name) + (isHidden ? ' <span style="font-size:0.7rem;opacity:0.7;">(hidden)</span>' : '') + '</div>' +
+      (isPlayer && c.username ? '<div style="font-size:0.7rem;color:var(--text-muted);">@' + escHtml(c.username) + '</div>' : '') +
+      '<div class="roster-card-sub">' + escHtml(c.faction_role || c.faction || '') + '</div>' +
+      '<div class="roster-card-type ' + (isPlayer ? 'roster-card-player' : 'roster-card-npc') + '">' + escHtml(c.class || '') + '</div>' +
+      '</div>';
+  }
+
   var cardsHtml = '<div class="roster-grid">';
   cardsHtml += '<div class="roster-card" id="newCharBtn" style="display:flex;align-items:center;justify-content:center;min-height:90px;border-style:dashed;"><span style="font-size:1.5rem;color:var(--accent-yellow);">+ New Character</span></div>';
-  characters.forEach(function(c) {
-    var isHidden = c.profile_visible !== 'yes';
-    cardsHtml +=
-      '<div class="roster-card ' + (isHidden ? 'roster-card-hidden' : '') + '" data-char="' + escAttr(c.character_name) + '">' +
-      '<div class="roster-card-name">' + escHtml(c.character_name) + (isHidden ? ' <span style="font-size:0.7rem;">(hidden)</span>' : '') + '</div>' +
-      '<div class="roster-card-sub">' + escHtml(c.faction_role || '') + '</div>' +
-      '<div class="roster-card-type ' + (c.type === 'player' ? 'roster-card-player' : 'roster-card-npc') + '">' + escHtml(c.type || 'npc') + ' · ' + escHtml(c.class || '') + '</div>' +
-      '</div>';
-  });
+
+  if (playerChars.length > 0) {
+    cardsHtml += '<div style="grid-column:1/-1;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent-green);padding:4px 0 2px;">Player Characters (' + playerChars.length + ')</div>';
+    playerChars.forEach(function(c) { cardsHtml += buildCard(c); });
+    cardsHtml += '<div style="grid-column:1/-1;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent-blue);padding:8px 0 2px;">NPCs (' + npcChars.length + ')</div>';
+  }
+  npcChars.forEach(function(c) { cardsHtml += buildCard(c); });
   cardsHtml += '</div>';
+
+  // Sync button — creates Characters entries for players who registered before auto-create was added
+  var syncHtml = '<div style="margin-bottom:12px;display:flex;align-items:center;gap:12px;">' +
+    '<button class="btn-secondary btn-small" id="syncPlayersBtn">Sync Players → Characters</button>' +
+    '<span class="status-msg" id="syncStatus" style="font-size:0.8rem;"></span>' +
+    '</div>';
 
   var formHtml = editingCharacter !== null ? buildCharacterForm(editingCharacter) : '<div class="empty-state">Click a character to edit, or click + New Character.</div>';
 
   content.innerHTML =
     '<h1 class="section-title">Characters</h1>' +
+    syncHtml +
     '<div class="two-col">' +
     '<div>' + cardsHtml + '</div>' +
     '<div id="charFormArea">' + formHtml + '</div>' +
     '</div>';
+
+  document.getElementById('syncPlayersBtn').addEventListener('click', async function() {
+    var btn = document.getElementById('syncPlayersBtn');
+    btn.disabled = true;
+    btn.textContent = 'Syncing...';
+    var result = await adminSyncPlayers();
+    btn.disabled = false;
+    btn.textContent = 'Sync Players → Characters';
+    if (result.success) {
+      var msg = result.created > 0
+        ? result.created + ' player character(s) created. Refreshing...'
+        : 'All players already have character entries.';
+      showStatus('syncStatus', msg, true);
+      if (result.created > 0) {
+        var fresh = await adminGetAllCharacters();
+        if (fresh.success) renderCharactersView(fresh.characters || []);
+      }
+    } else {
+      showStatus('syncStatus', result.error, false);
+    }
+  });
 
   document.getElementById('newCharBtn').addEventListener('click', function() {
     editingCharacter = {};
@@ -1051,6 +1135,89 @@ function wirePlaceForm() {
 
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Changes';
+  });
+}
+
+// -----------------------------------------------
+// ASSETS
+// -----------------------------------------------
+
+async function loadAssets() {
+  var content = document.getElementById('adminContent');
+  content.innerHTML = '<h1 class="section-title">Assets</h1><div class="loading-msg">Loading...</div>';
+
+  var [charResult, factionResult, placesResult] = await Promise.all([
+    adminGetAllCharacters(),
+    adminGetFactions(),
+    adminGetPlaces(),
+  ]);
+
+  var characters = (charResult.success && charResult.characters) ? charResult.characters : [];
+  var factions = (factionResult.success && factionResult.factions) ? factionResult.factions : [];
+  var places = (placesResult.success && placesResult.places) ? placesResult.places : [];
+
+  // Build asset lists for each category
+  var profileAssets = [];
+  var cutoutAssets = [];
+  characters.forEach(function(c) {
+    var name = c.character_name || '(unnamed)';
+    var profileUrl = c.profile_url || (c.asset_slug ? '/assets/characters/' + c.asset_slug + '/profile.png' : '');
+    var cutoutUrl = c.cutout_url || (c.asset_slug ? '/assets/characters/' + c.asset_slug + '/cutout.png' : '');
+    if (profileUrl) profileAssets.push({ name: name, url: profileUrl });
+    if (cutoutUrl) cutoutAssets.push({ name: name + ' (cutout)', url: cutoutUrl });
+  });
+
+  var bannerAssets = [];
+  factions.forEach(function(f) {
+    var name = f.faction_name || '(unnamed)';
+    var bannerUrl = f.banner_url || (f.asset_slug ? '/assets/factions/' + f.asset_slug + '/banner.png' : '');
+    if (bannerUrl) bannerAssets.push({ name: name, url: bannerUrl });
+  });
+
+  var bgAssets = [];
+  places.forEach(function(p) {
+    if (p.background_url) bgAssets.push({ name: p.label || p.slug || '(unnamed)', url: p.background_url });
+  });
+
+  function buildAssetSection(title, assets) {
+    if (assets.length === 0) return '<div class="form-section-title">' + title + '</div><div class="empty-state" style="margin-bottom:24px;">None configured yet.</div>';
+    var html = '<div class="form-section-title">' + title + ' (' + assets.length + ')</div>';
+    html += '<div class="asset-gallery">';
+    assets.forEach(function(a) {
+      html += '<div class="asset-card">' +
+        '<img class="asset-thumb" src="' + escAttr(a.url) + '" alt="" onerror="this.style.display=\'none\'">' +
+        '<div class="asset-card-name">' + escHtml(a.name) + '</div>' +
+        '<div class="asset-url-row">' +
+        '<span class="asset-url-text" title="' + escAttr(a.url) + '">' + escHtml(a.url.length > 40 ? '...' + a.url.slice(-40) : a.url) + '</span>' +
+        '<button class="btn-secondary btn-small copy-url-btn" data-url="' + escAttr(a.url) + '">Copy</button>' +
+        '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  content.innerHTML =
+    '<h1 class="section-title">Assets</h1>' +
+    '<p class="section-subtitle">All images available for use in posts, characters, and factions. Click Copy to get the URL.</p>' +
+    buildAssetSection('Place Backgrounds', bgAssets) +
+    buildAssetSection('Character Profiles', profileAssets) +
+    buildAssetSection('Character Cutouts', cutoutAssets) +
+    buildAssetSection('Faction Banners', bannerAssets) +
+    '<div id="copyToast" style="display:none;position:fixed;bottom:24px;right:24px;background:var(--accent-green);color:#000;padding:10px 18px;border-radius:6px;font-weight:700;font-size:0.85rem;z-index:999;">Copied!</div>';
+
+  // Copy URL buttons
+  content.addEventListener('click', function(e) {
+    if (e.target.classList.contains('copy-url-btn')) {
+      var url = e.target.getAttribute('data-url');
+      navigator.clipboard.writeText(url).then(function() {
+        var toast = document.getElementById('copyToast');
+        if (toast) {
+          toast.style.display = 'block';
+          setTimeout(function() { toast.style.display = 'none'; }, 1800);
+        }
+      });
+    }
   });
 }
 
