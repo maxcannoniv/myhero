@@ -15,24 +15,36 @@ An asynchronous multiplayer social-strategy RPG played through a web dashboard. 
 
 ## Key Files
 
+**Player-facing:**
 - `index.html` — Landing page (in-universe "Emergency Alert" from the Mayor)
 - `classes.html` — Class/archetype showcase ("Roles We Need Most")
 - `login.html` — Login + signup with skill point allocation
 - `dashboard.html` — Player terminal (phone-style app launcher with 9 apps)
-- `css/style.css` — All styling (comic book theme, per-feed styles, messages, character popups)
+- `css/style.css` — All styling (comic book theme, per-feed styles, messages, character + faction popups)
 - `js/auth.js` — Login, signup, password hashing, session management, class skill data
-- `js/sheets.js` — API communication layer (calls Netlify Functions)
-- `js/dashboard.js` — Terminal navigation, feed rendering (5 distinct styles), Bliink posting + compositing, messaging (inbox/threads/contacts), character + faction popups, clickable names, `[Name]` syntax
-- `netlify/functions/api.js` — **The backend**. Handles all API actions: login, register, getHeroData, getFeed, createPost, getInbox, getThread, sendMessage, getContacts, addContact, getCharacter, getFaction
+- `js/sheets.js` — API communication layer (calls Netlify Functions). Includes both player API calls and admin API calls.
+- `js/dashboard.js` — Terminal navigation, feed rendering (5 distinct styles), Bliink posting + compositing (backgrounds + cutouts loaded dynamically from Sheets), messaging (inbox/threads/contacts), character + faction popups, clickable names, `[Name]` syntax
+
+**Admin portal (DM only — not linked from player pages):**
+- `admin.html` — Game Manager portal. Login-gated. Requires `ADMIN_PASSWORD` env var on Netlify.
+- `css/admin.css` — Admin portal styles (dark theme, sidebar layout, tables, forms)
+- `js/admin.js` — All admin logic: auth, 10 sections (Dashboard, NPC Inbox, Post Composer, Missions, Cycle, Players, Reputation, Characters, Factions, Places)
+
+**Backend:**
+- `netlify/functions/api.js` — **The backend**. Handles all API actions: player routes (login, register, getHeroData, getFeed, createPost, getInbox, getThread, sendMessage, getContacts, addContact, getCharacter, getFaction, getMissions, getMissionQuestions, submitMission, getCharacters, getPlaces) + admin routes (adminLogin, adminGetOverview, adminGetNPCInbox, adminSendMessage, adminGetAllPosts, adminCreatePost, adminUpdatePost, adminGetMissionSubmissions, adminResolveMission, adminAdvanceCycle, adminGetPlayers, adminUpdatePlayer, adminGetReputation, adminUpdateReputation, adminGetAllCharacters, adminSaveCharacter, adminGetFactions, adminSaveFaction, adminUploadImage, adminGetPlaces, adminSavePlace). All admin routes verified by `verifyAdmin()`.
 - `netlify.toml` — Netlify config (publish dir, functions dir, esbuild bundler)
-- `google-apps-script-clean.js` — Legacy Apps Script code (no longer active, kept for reference)
+
+**Setup scripts (run once or as needed):**
 - `setup-sheet.js` — Node script to set up Players tab
 - `setup-new-tabs.js` — Creates Characters and Factions tabs with initial NPC/faction data
 - `setup-feeds.js` — Creates Feeds tab with sample posts
 - `setup-messages.js` — Creates Messages and Contacts tabs
 - `setup-reputation.js` — Fills missing Reputation rows (player × faction = neutral). Safe to run after adding new factions — additive only, never overwrites custom values.
-- `process-assets.js` — Drop folder processor. Move image files into `_drop/` subfolders, run this script, it slugifies, moves to `assets/`, updates Sheets, updates `dashboard.js` arrays.
+- `process-assets.js` — Drop folder processor. Move image files into `_drop/` subfolders, run this script, it slugifies, moves to `assets/`, updates Sheets asset_slug column.
 - `sync-assets.js` — Read-only asset checker. Cross-references `assets/` folders vs. Sheets. Run to see what's missing or mismatched.
+
+**Other:**
+- `google-apps-script-clean.js` — Legacy Apps Script code (no longer active, kept for reference)
 - `credentials.json` — Service account key (in .gitignore, never commit)
 
 ## Game Design
@@ -121,11 +133,20 @@ assets/
 
 **Slug naming convention:** always lowercase, hyphens for spaces (e.g. `head-honcho`, `mongrels-towing`). Never use capitals or spaces in slug names — folder names must match exactly.
 
-**How it works:**
+**How it works — two parallel systems:**
+
+*Local file assets (original system — still active):*
 - Characters tab in Sheets has `asset_slug` column → frontend builds path `/assets/characters/{slug}/profile.png`
 - Factions tab in Sheets has `asset_slug` column → frontend builds path `/assets/factions/{slug}/banner.png`
-- Places are referenced directly by slug in the Bliink composer — no Sheets column needed
 - If `asset_slug` is blank, popups fall back to a text initial placeholder
+
+*Admin portal image URLs (new system):*
+- Characters tab now also has `profile_url` and `cutout_url` columns — direct image URLs (e.g. from imgbb)
+- Factions tab now also has `banner_url` column — direct URL shown as banner image in faction popup
+- Places tab in Sheets stores Bliink backgrounds: columns `slug`, `label`, `background_url`
+- `profile_url` takes priority over `asset_slug` path in the character popup
+- Bliink backgrounds load from the Places tab; cutouts load from characters with `cutout_url` set
+- Both systems fall back gracefully: if `profile_url` is blank, falls back to `asset_slug` path; if Places tab is empty, falls back to hardcoded backgrounds
 
 **Workflow for new assets (use this every time):**
 1. Name the file after the character/faction/place. Spaces and capitals are fine — the script handles the rest.
@@ -138,7 +159,6 @@ assets/
 3. Run: `node process-assets.js`
    - Moves files to correct `assets/` location with standardized filename
    - Updates `asset_slug` in Characters or Factions tab in Sheets (creates column if missing)
-   - Adds cutouts to `BLIINK_CUTOUTS` and places to `BLIINK_BACKGROUNDS` in `dashboard.js`
    - Clears the `_drop/` folder
    - Prints a summary and warnings for any Sheets mismatches
 4. Git push → Netlify auto-deploys
@@ -154,53 +174,60 @@ Players don't know which characters are NPCs and which are real players. All cha
 
 **Tab: Players** — Columns: username, password_hash, hero_name, class, might, agility, charm, intuition, commerce, intelligence, followers, bank, positional_authority, clout
 
-**Tab: Characters** — All characters (player + NPC). Columns: character_name, type (player/npc), username (blank for NPCs), class, bio, faction, faction_role, profile_visible, asset_slug. NPCs start light (no stats), stats added later if needed. `faction_role` is a short description of the character's position within their faction (e.g. "Owner of Mongrel's Towing", "Private Eye"). `asset_slug` is a lowercase identifier (e.g. `bloodhound`) used to locate all assets for that character in `assets/characters/{slug}/`.
-**Tab: Factions** — Columns: faction_name, description, power_multiplier, leader, members_public (yes/no — controls whether the member list is shown in the faction popup), asset_slug (lowercase slug for faction banner image, e.g. `mongrels-towing`)
+**Tab: Characters** — All characters (player + NPC). Columns: character_name, type (player/npc), username (blank for NPCs), class, bio, faction, faction_role, profile_visible, asset_slug, profile_url, cutout_url. `faction_role` is a short description of the character's position within their faction (e.g. "Owner of Mongrel's Towing", "Private Eye"). `asset_slug` is a lowercase identifier used to locate local assets in `assets/characters/{slug}/`. `profile_url` and `cutout_url` are optional direct image URLs (e.g. from imgbb); if set, they take priority over the asset_slug path.
+**Tab: Factions** — Columns: faction_name, description, power_multiplier, leader, members_public (yes/no — controls whether the member list is shown in the faction popup), asset_slug (lowercase slug for local banner image), banner_url (optional direct image URL for faction popup banner — takes priority over asset_slug path)
+**Tab: Places** — Bliink background scenes. Columns: slug (lowercase, hyphens), label (display name shown in composer), background_url (direct image URL). Loaded dynamically into the Bliink post composer. Falls back to hardcoded list if empty.
 **Tab: Reputation** — Columns: hero_name, faction_name, reputation (hostile/negative/neutral/positive/ally). One row per player per faction. Will control visibility features in the future.
 
 **Reputation maintenance routines:**
 - **New player registers** → handled automatically by `handleRegister` in `api.js`. Neutral rows are added for all factions at signup. No manual action needed.
-- **New faction added** (DM adds to Factions tab) → run `node setup-reputation.js` after adding. Script is additive — only fills missing rows, never overwrites custom values.
+- **New faction added** → Use the Factions section in the admin portal. Reputation rows are created automatically for all existing players when the faction is saved. If adding directly to Sheets instead, run `node setup-reputation.js` afterward (additive only, never overwrites).
 - **New character added** → no action needed. Reputation is player×faction only; NPC characters don't get reputation rows.
 **Tab: Inventory** — Per-player items and notes. Columns: username, item_name, type (item/note), content_id (for notes), description
 **Tab: NoteContent** — Secret content for notes. Columns: content_id, title, body_text, image_url. Only loaded when a player with the note clicks it.
 **Tab: Feeds** — All feed posts (all feeds in one tab). Columns: feed, posted_by, posted_by_type (character/faction/anonymous), title, image_url, body, timestamp, visible (yes/no), cutout_url (optional — character cutout layered over image_url in Bliink posts), cycle_id (format: `1.00.00.0` — cycle number + days/hours/10-min-block since cycle start)
 **Tab: Messages** — All messages. Columns: from_character, to_character, body, timestamp, read (yes/no), cycle_id
-**Tab: Settings** — Game-wide configuration. Columns: key, value. Current rows: `current_cycle` (integer), `cycle_start` (ISO timestamp). DM edits these to advance the cycle.
+**Tab: Settings** — Game-wide configuration. Columns: key, value. Current rows: `current_cycle` (integer), `cycle_start` (ISO timestamp). Updated automatically when DM clicks "Advance Cycle" in the admin portal.
 **Tab: Contacts** — Player contact lists. Columns: hero_name, contact_name
-**Tab: Missions** — Empty, for future use
+**Tab: Missions** — Mission cards shown in the myHERO feed. Columns: mission_id, title, description, image_url, visible, cycle_id, outcome_a_label, outcome_a_narrative, outcome_a_image, outcome_a_changes, outcome_b_*, outcome_c_*
+**Tab: MissionQuestions** — One row per answer option. Columns: mission_id, question_num, question_text, option_id, option_text, option_image, option_flavor, option_weight (a/b/c — hidden from players)
+**Tab: MissionSubmissions** — One row per player per mission. Columns: submission_id, username, hero_name, mission_id, q1_answer–q4_answer, outcome_bucket (auto-computed), dm_override, resolved (yes/no), cycle_id, timestamp
 
 ## Game Manager Reference
 
-Everything the GM needs to do to run the game. This list drives the admin portal build. Items marked **[AUTOMATABLE]** are good candidates for the admin dashboard. Items marked **[MANUAL]** will likely stay as direct Sheets edits for now.
+Everything the GM needs to do to run the game. Items marked **[DONE]** are handled by the admin portal at `/admin.html`. Items marked **[MANUAL]** still require direct Sheets editing. Items marked **[PARTIALLY DONE]** are in the portal but have gaps.
 
 ---
 
 ### Cycle Management
 
 **Advancing a Cycle** — do this when player actions have been reviewed and outcomes decided.
-1. Open the `Settings` tab in Sheets
-2. Increment `current_cycle` by 1 (e.g., 1 → 2)
-3. Update `cycle_start` to the current ISO timestamp — open browser console and type `new Date().toISOString()`, paste the result into the cell
-4. Write a Cycle Summary post (see Content Creation below)
-> **[AUTOMATABLE]** — One button in the admin portal should do steps 1–3 automatically.
+1. Go to `/admin.html` → Cycle section → click "Advance Cycle"
+   - This increments `current_cycle` and writes a new `cycle_start` timestamp automatically
+2. Write a Cycle Summary post in The Times Today (use the Post Composer section)
+> **[DONE]** — Cycle advancement is handled by the admin portal.
 
 **Reviewing a Cycle** — before closing, review what happened:
-- Read the Missions tab to see all player answers submitted since last cycle
-- Check the Messages tab for any player-to-NPC conversations that need responses
-- Check the Bliink feed for player posts
+- Go to admin portal → Missions → review player submissions and resolve outcomes
+- Go to admin portal → NPC Inbox → check for player-to-NPC conversations that need responses
+- Check the Bliink feed (as a player or in the Post Composer list) for player posts
 - Decide stat/reputation consequences and apply them (see Stat Management and Reputation Management)
 
 ---
 
 ### Content Creation
 
-All feed posts are written directly into the `Feeds` tab in Sheets. Column order matters — always fill: `feed`, `posted_by`, `posted_by_type`, `title`, `image_url`, `body`, `timestamp`, `visible`, `cutout_url`, `cycle_id`.
+Feed posts can be created in two ways:
 
-- **`visible`** — set to `yes` to publish immediately, `no` to draft/hide
-- **`timestamp`** — use format `YYYY-MM-DD HH:MM` (e.g. `2026-02-20 14:30`)
-- **`cycle_id`** — use current cycle format, e.g. `1.00.00.0`. Posts created by players are stamped automatically; DM-written posts in Sheets need this filled in manually.
-- **`[Name]` syntax** — write `[Mongrel]` anywhere in `body` and it renders as a clickable character link in all feeds
+**Preferred: Admin portal Post Composer** (`/admin.html` → Post Composer)
+- Select feed, posted_by character, title, body, optional image URL
+- Toggle publish now vs. save as draft
+- Timestamp and cycle_id are auto-filled
+- Existing posts are listed with Publish/Unpublish toggle buttons
+
+**Manual fallback: Sheets** (still works, column order matters)
+- Fill: `feed`, `posted_by`, `posted_by_type`, `title`, `image_url`, `body`, `timestamp`, `visible`, `cutout_url`, `cycle_id`
+- `timestamp` format: `YYYY-MM-DD HH:MM`. `cycle_id` format: `1.00.00.0`
 
 | Feed | Sheet `feed` value | Style | Notes |
 |------|--------------------|-------|-------|
@@ -210,52 +237,56 @@ All feed posts are written directly into the `Feeds` tab in Sheets. Column order
 | Daily Dollar | `dailydollar` | WSJ newspaper | Financial/economic city news |
 | Streetview | `streetview` | Noir blog | Bloodhound's anonymous investigator posts |
 
-> **[AUTOMATABLE]** — A post composer form in the admin portal should write the row with correct column order, auto-fill timestamp and cycle_id, and handle the `[Name]` syntax without needing to remember columns.
+**`[Name]` syntax** — write `[Mongrel]` anywhere in `body` and it renders as a clickable character link in all feeds.
+
+> **[DONE]** — Post Composer is in the admin portal.
 
 ---
 
 ### NPC Messaging
 
-To send a message as an NPC to a player:
-1. Open the `Messages` tab in Sheets
-2. Add a new row: `from_character` = NPC name, `to_character` = player's hero_name, `body` = message text, `timestamp` = `YYYY-MM-DD HH:MM`, `read` = `no`, `cycle_id` = current cycle_id
-3. The player will see this in their Messages inbox with an unread badge
+**Preferred: Admin portal NPC Inbox** (`/admin.html` → NPC Inbox)
+1. Select the NPC sender from the left panel
+2. Select the player recipient (conversation tab)
+3. Type message + click Send
+- Timestamp and cycle_id are auto-filled. Message appears in player's inbox immediately.
 
-> **[AUTOMATABLE]** — Highest-priority admin feature. Writing rows by hand is error-prone and the column order is fragile.
+**Manual fallback: Sheets**
+- Open `Messages` tab → add row: `from_character`, `to_character`, `body`, `timestamp` (`YYYY-MM-DD HH:MM`), `read` = `no`, `cycle_id`
+
+> **[DONE]** — NPC Inbox is in the admin portal.
 
 ---
 
 ### Character Management
 
-**Add a new NPC:**
-1. Open the `Characters` tab in Sheets
-2. Add a row: `character_name`, `type` = `npc`, `username` = blank, `class`, `bio`, `faction`, `faction_role` (short description, e.g. "Private Eye"), `profile_visible` = `yes` or `no`, `asset_slug` = blank until assets are added
+**Preferred: Admin portal Characters section** (`/admin.html` → Characters)
+- Click any character card to open its edit form (name, class, bio, faction, faction_role, profile_visible, profile_url, cutout_url)
+- Click "Add New Character" to create an NPC
+- Toggle `profile_visible` to reveal or hide a character from players
+- Paste a direct image URL into `profile_url` or `cutout_url` to set images without local file management
 
-**Edit an NPC:**
-- Edit bio, faction_role, or other fields directly in the Characters tab
-- Change `profile_visible` from `no` to `yes` to reveal a hidden NPC to players
-
-**Add assets for a character:**
+**Add local image assets for a character (existing workflow — still works):**
 1. Drop the image into `_drop/characters/` (profile headshot) or `_drop/cutouts/` (transparent PNG)
 2. Run `node process-assets.js`
 3. Run `git push` to deploy
 
-> **[AUTOMATABLE]** — NPC creation and editing via a form. Asset upload via drag-and-drop (harder, lower priority).
+> **[DONE]** — Character editor is in the admin portal.
 
 ---
 
 ### Faction Management
 
-**Add a new faction:**
-1. Open the `Factions` tab in Sheets
-2. Add a row: `faction_name`, `description`, `power_multiplier` (number — affects Clout calculations), `leader` (character name), `members_public` = `yes` or `no`, `asset_slug` = blank until banner added
-3. **Immediately after:** run `node setup-reputation.js` — this creates neutral reputation rows for every existing player against the new faction. If you skip this, existing players will have no reputation row for that faction.
+**Preferred: Admin portal Factions section** (`/admin.html` → Factions)
+- Click any faction card to open its edit form (name, description, power_multiplier, leader, members_public, banner_url)
+- Click "Add New Faction" to create one — reputation rows for all existing players are created automatically
+- Paste a direct image URL into `banner_url` to show a banner in the faction popup
 
-**Edit a faction:**
-- Edit any field directly in the Factions tab
-- Changing `members_public` to `yes` will make the member list visible in the faction popup
+**Manual fallback: Sheets**
+- Open `Factions` tab → add/edit row
+- **After adding a new faction via Sheets:** run `node setup-reputation.js` to create neutral reputation rows for all existing players (skip this and existing players have no row for that faction)
 
-> **[AUTOMATABLE]** — Faction form + auto-run reputation fill on creation.
+> **[DONE]** — Faction editor is in the admin portal.
 
 ---
 
@@ -263,14 +294,16 @@ To send a message as an NPC to a player:
 
 Reputation is stored in the `Reputation` tab. One row per player per faction. Values: `hostile`, `negative`, `neutral`, `positive`, `ally`.
 
-**Adjust a player's standing with a faction:**
-1. Open the `Reputation` tab
-2. Find the row where `hero_name` = player and `faction_name` = faction
-3. Change the `reputation` value
+**Preferred: Admin portal Reputation section** (`/admin.html` → Reputation)
+- Player × faction grid with a dropdown per cell
+- Change any standing — auto-saves on change
+
+**Manual fallback: Sheets**
+- Open `Reputation` tab → find the row (hero_name + faction_name) → change the `reputation` value
 
 Do this after cycle resolution when player actions have earned or lost favor.
 
-> **[AUTOMATABLE]** — A simple grid or dropdown editor in the admin portal would be much easier than scrolling a Sheets tab.
+> **[DONE]** — Reputation editor is in the admin portal.
 
 ---
 
@@ -278,22 +311,23 @@ Do this after cycle resolution when player actions have earned or lost favor.
 
 Player stats live in the `Players` tab. Update these after cycle resolution.
 
-**Skills** (edit directly in Players tab — columns `might`, `agility`, `charm`, `intuition`, `commerce`, `intelligence`):
-- Scale: 1–10. 3 = average person. 20 starting points.
+**Skills** — scale 1–10. 3 = average person. 20 starting points.
+**Aggregate scores** — `followers` (number), `bank` (dollars), `positional_authority` (letter tier: F, E, D, C, B, A, S, SS), `clout` (manual for now — formula TBD).
 
-**Aggregate scores** (edit directly in Players tab):
-- `followers` — number (e.g. 500)
-- `bank` — number in dollars (e.g. 4500)
-- `positional_authority` — letter tier: F, E, D, C, B, A, S, SS
-- `clout` — derived from reputation × faction power multiplier. Currently manual. Formula TBD.
+**Preferred: Admin portal Players section** (`/admin.html` → Players)
+- All players listed in a table with editable stat fields per row
+- Click Save on a player row to batch-update all their stats in one call
 
-> **[AUTOMATABLE]** — A stat editor per player would prevent accidental column mismatches and make cycle resolution faster.
+**Manual fallback: Sheets**
+- Edit directly in `Players` tab (columns: might, agility, charm, intuition, commerce, intelligence, followers, bank, positional_authority, clout)
+
+> **[DONE]** — Stat editor is in the admin portal.
 
 ---
 
 ### Inventory Management
 
-*(UI not yet built, but Sheets structure exists)*
+*(Not yet in admin portal — use Sheets directly for now)*
 
 **Give a player an item:**
 1. Open the `Inventory` tab
@@ -303,7 +337,7 @@ Player stats live in the `Players` tab. Update these after cycle resolution.
 1. First create the note content: open `NoteContent` tab → add row with `content_id` (unique, hard-to-guess string — e.g. `sv-clue-001`), `title`, `body_text`, `image_url` (optional)
 2. Then add to Inventory tab: `username`, `item_name`, `type` = `note`, `content_id` = the ID you just created, `description`
 
-> **[AUTOMATABLE]** — Note creation is especially error-prone (two tabs, linked by ID). Admin portal should handle both steps together.
+> **[MANUAL]** — Note creation spans two tabs linked by ID — easy to get wrong. Admin portal will handle this in a future phase (see Phase 3.12 in ROADMAP.md).
 
 ---
 
@@ -350,47 +384,53 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
    - `option_weight` — `a`, `b`, or `c`. Hidden from players. The outcome with the most votes wins.
 
 **Review a cycle's submissions:**
-1. Open `MissionSubmissions` tab
-2. Each row is one player's answers. Columns `q1_answer`–`q4_answer` hold the option_ids they chose.
-3. `outcome_bucket` is auto-computed (a/b/c based on majority weight). This is what the player will see.
-4. To override: write `a`, `b`, or `c` in the `dm_override` column. The frontend uses `dm_override` over `outcome_bucket` if it's set.
-5. When ready for the player to see their outcome: change `resolved` from `no` to `yes`.
+
+**Preferred: Admin portal Missions section** (`/admin.html` → Missions)
+- All missions listed; click to see player submissions for that mission
+- Each submission shows the player's answers and the auto-computed outcome bucket
+- Set `dm_override` (a/b/c) to override the computed bucket
+- Click "Resolve" to flip `resolved = yes` — player can now see their outcome
+
+**Manual fallback: Sheets**
+1. Open `MissionSubmissions` tab — each row is one player's answers
+2. `outcome_bucket` is auto-computed. `dm_override` overrides it if set.
+3. Change `resolved` from `no` to `yes` when ready for the player to see the outcome
 
 **Apply stat changes manually:**
-- Read the `outcome_changes` string from the Missions tab for the player's bucket
-- Update `Players` tab (bank, followers, skills, etc.) and `Reputation` tab as needed
-- (Admin portal will automate this — Phase 3.7)
+- Read the `outcome_a_changes` (or b/c) string from the Missions tab for the player's bucket
+- Update `Players` tab (bank, followers, skills, etc.) and `Reputation` tab as needed (see Stat Management and Reputation Management above)
 
-> **[AUTOMATABLE]** — Mission creator and answer reviewer are high-priority admin portal features (Phase 3.4).
+> **[PARTIALLY DONE]** — Missions reviewer is in the admin portal. Stat-change auto-apply is not yet built (Phase 3.7 in ROADMAP.md).
 
 ---
 
 ### Player Support
 
-**Reset a player's password** — no automated flow exists yet:
+**Reset a player's password** — not yet in admin portal:
 1. Generate a SHA-256 hash of the new password (use a browser-based tool or the signup page's hashing logic)
 2. Open the `Players` tab → find the player row → update `password_hash`
 
-> **[AUTOMATABLE]** — Simple admin action.
+> **[MANUAL]** — Simple but infrequent. Admin portal will handle this in a future phase (Phase 3.13 in ROADMAP.md).
 
 ---
 
-### Summary: Admin Portal Priority Order
+### Summary: Admin Portal Status
 
-Based on frequency of use and error risk:
-
-| Priority | Task | Why |
-|----------|------|-----|
-| 1 | **NPC messaging** | Done every cycle, column order error-prone |
-| 2 | **Feed post composer** | Done every cycle, tedious in Sheets |
-| 3 | **Cycle advancement** | Requires computing ISO timestamp manually |
-| 4 | **Stat editor** | Done every cycle, risk of column mistakes |
-| 5 | **Reputation editor** | Done every cycle, slow to find rows in Sheets |
-| 6 | **Character creator/editor** | Less frequent but fiddly |
-| 7 | **Inventory/note giver** | Two-tab operation, easy to get wrong |
-| 8 | **Mission reviewer** | Not built yet |
-| 9 | **Faction creator/editor** | Infrequent |
-| 10 | **Password reset** | Rare |
+| Task | Status | Section in portal |
+|------|--------|-------------------|
+| **NPC messaging** | ✓ Done | NPC Inbox |
+| **Feed post composer** | ✓ Done | Post Composer |
+| **Cycle advancement** | ✓ Done | Cycle |
+| **Stat editor** | ✓ Done | Players |
+| **Reputation editor** | ✓ Done | Reputation |
+| **Character creator/editor** | ✓ Done | Characters |
+| **Faction creator/editor** | ✓ Done | Factions |
+| **Mission reviewer** | ✓ Done | Missions |
+| **Bliink backgrounds (Places)** | ✓ Done | Places |
+| **Inventory/note giver** | Not built | Phase 3.12 |
+| **Mission stat-change auto-apply** | Not built | Phase 3.7 |
+| **Password reset** | Not built | Phase 3.13 |
+| **In-portal image uploads (imgbb)** | Not built | Phase 3.15 |
 
 ---
 
@@ -400,29 +440,43 @@ Based on frequency of use and error risk:
 - Full login/signup flow with class selection and skill allocation
 - Phone-style terminal dashboard with 9 apps in a 3×3 grid (row 1: myHERO, Bliink, The Times; row 2: Daily Dollar, Streetview, Messages; row 3: Profile, Inventory, Notebook)
 - 5 live feeds with distinct visual styles: Streetview (noir), Daily Dollar (WSJ), myHERO (job board), Bliink (Instagram), The Times Today (broadsheet newspaper)
-- Bliink posting with CSS-layered compositing — background scene picker + optional character cutout picker + live preview + caption. Both image URLs saved to Feeds tab (`image_url` + `cutout_url`).
+- Bliink posting with CSS-layered compositing — background scene picker (loaded dynamically from Places tab in Sheets) + optional character cutout picker (loaded from characters with cutout_url) + live preview + caption. Both image URLs saved to Feeds tab.
 - Messaging system: inbox, 1-on-1 threads, contacts, send/receive messages
-- Character profile popups — full trading-card layout: large image at top, info + bio + actions below. Clickable from any feed or faction popup.
-- Faction popups — clicking a faction name opens a card with description, leader (clickable), and member list (if `members_public = yes`). All members are clickable.
+- Character profile popups — full trading-card layout: large image at top, info + bio + actions below. Clickable from any feed or faction popup. Supports `profile_url` (direct URL) or `asset_slug` (local file) for the profile image.
+- Faction popups — clicking a faction name opens a card with description, leader (clickable), optional banner image, and member list (if `members_public = yes`). All members are clickable.
 - `[Name]` syntax in post body text — DM writes `[Mongrel]` in Sheets → renders as a clickable character link across all feeds
 - Contact discovery (zero starting contacts, discover through feeds)
 - Profile page with 4 aggregate scores + 6 base skills
 - Class starting defaults (bank, followers, authority) applied at signup
-- Reputation system — Reputation tab tracks player × faction standing (hostile/negative/neutral/positive/ally). Auto-initialized to neutral on signup. Run `node setup-reputation.js` after adding new factions.
-- Asset system — organized under `assets/characters/{slug}/`, `assets/factions/{slug}/`, `assets/places/{slug}/`. Use `process-assets.js` drop folder workflow to add new images. Run `sync-assets.js` to verify.
+- Reputation system — Reputation tab tracks player × faction standing (hostile/negative/neutral/positive/ally). Auto-initialized to neutral on signup.
+- Asset system — organized under `assets/characters/{slug}/`, `assets/factions/{slug}/`, `assets/places/{slug}/`. Use `process-assets.js` drop folder workflow. Run `sync-assets.js` to verify.
   - Characters with assets: bloodhound, mongrel, dozer, aurora-edge, smiles (profile + cutout)
   - Places with assets: mongrels-towing-yard (background)
-- **Mission system** — Full illusion-of-choice mission flow. DM writes missions in Sheets, players tap through questions in a full-screen overlay, outcome bucket auto-computed, DM reviews and flips resolved = yes. Three Sheets tabs: Missions, MissionQuestions, MissionSubmissions.
+- **Mission system** — Full illusion-of-choice mission flow. DM writes missions in Sheets, players tap through questions in a full-screen overlay, outcome bucket auto-computed, DM reviews and resolves via admin portal. Three Sheets tabs: Missions, MissionQuestions, MissionSubmissions.
   - Mission cards in myHERO feed with 3 states: Available / Awaiting Resolution / Read Outcome
   - Full-screen question overlay: image swaps, flavor text, answer locking, auto-advance
   - Confirm screen before submit; outcome screen with narrative + stat change string after DM resolves
   - `option_weight` never sent to client — players cannot see how choices are weighted
+- **Admin portal** — DM-only interface at `/admin.html`. Login-gated (ADMIN_PASSWORD env var). 10 sections:
+  - **Dashboard** — overview stats (players, unread messages, pending missions, current cycle)
+  - **NPC Inbox** — send messages as any NPC to any player; view full conversation history
+  - **Post Composer** — write and publish feed posts with auto-filled timestamp + cycle_id; publish/unpublish toggle on existing posts
+  - **Missions** — view all player submissions per mission; override outcome bucket; flip resolved = yes
+  - **Cycle** — one-click cycle advancement (increments counter + writes timestamp to Sheets)
+  - **Players** — editable stat table for all players (skills + aggregates)
+  - **Reputation** — player × faction grid with dropdown per cell; auto-saves on change
+  - **Characters** — roster + edit form; toggle profile_visible; set profile_url/cutout_url
+  - **Factions** — list + edit form; auto-creates reputation rows on new faction save; set banner_url
+  - **Places** — Bliink background list; add/edit slug + label + background_url
 - Backend fully on Netlify Functions (auto-deploys with git push)
 - Live at https://myherogame.netlify.app
 
-**What's NOT built yet (next steps toward MVP):**
-1. **Feed content** — Only sample/test posts exist. DM needs to write real Streetview articles, Daily Dollar news, myHERO job listings, NPC Bliink posts, and The Times Today articles
-2. **Real missions** — The Sheets structure and UI are live, but only a sample mission exists. DM needs to write 3 real missions with real questions, images, and outcome narratives
-3. **Admin dashboard** — DM tools to manage content, review missions, update stats, and run the game without editing Sheets directly. This is now the highest remaining build priority.
+**What's NOT built yet:**
+1. **Feed content** — Only sample/test posts exist. DM needs to write real Streetview articles, Daily Dollar news, myHERO job listings, NPC Bliink posts, and The Times Today articles. (Use Post Composer in admin portal.)
+2. **Real missions** — Sheets structure and UI are live, but only a sample mission exists. DM needs to write real missions with questions, images, and outcome narratives.
+3. **Inventory/Notebook system** — Tab structure exists in Sheets but the terminal app shows "Coming Soon". Giving items/notes to players still requires manual Sheets editing.
+4. **Mission stat-change auto-apply** — DM still reads the outcome_changes string and manually updates Players + Reputation tabs. Automation planned for Phase 3.7.
+5. **Password reset** — No admin UI yet. Manual Sheets edit required (Phase 3.13).
+6. **In-portal image uploads** — Upload widget is built into admin forms but requires IMGBB_API_KEY env var (not set). Process-assets.js workflow still the primary way to add images (Phase 3.15).
 
 See ROADMAP.md for full build plan.

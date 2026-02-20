@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>myHERO — Game Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+  <!-- ===== LOGIN SCREEN ===== -->
+  <div id="adminLogin">
+    <div class="login-card">
+      <div class="login-title">myHERO</div>
+      <div class="login-subtitle">Game Manager</div>
+      <input type="password" id="adminPassword" class="login-input" placeholder="Admin password" autocomplete="current-password">
+      <button id="adminLoginBtn" class="btn-primary login-btn">Enter</button>
+      <div id="loginError" class="login-error"></div>
+    </div>
+  </div>
+
+  <!-- ===== MAIN APP (hidden until logged in) ===== -->
+  <div id="adminApp" style="display: none;">
+
+    <!-- Sidebar -->
+    <nav id="adminSidebar">
+      <div class="sidebar-logo">myHERO<br><span class="sidebar-logo-sub">Game Manager</span></div>
+      <ul class="sidebar-nav">
+        <li><a href="#" class="nav-link active" data-section="dashboard">&#9711; Dashboard</a></li>
+        <li><a href="#" class="nav-link" data-section="inbox">&#9993; NPC Inbox</a></li>
+        <li><a href="#" class="nav-link" data-section="composer">&#9998; Post Composer</a></li>
+        <li><a href="#" class="nav-link" data-section="missions">&#9651; Missions</a></li>
+        <li><a href="#" class="nav-link" data-section="cycle">&#9711; Cycle</a></li>
+        <li><a href="#" class="nav-link" data-section="players">&#9632; Players</a></li>
+        <li><a href="#" class="nav-link" data-section="reputation">&#9670; Reputation</a></li>
+        <li><a href="#" class="nav-link" data-section="characters">&#9786; Characters</a></li>
+        <li><a href="#" class="nav-link" data-section="factions">&#9670; Factions</a></li>
+        <li><a href="#" class="nav-link" data-section="places">&#9830; Places</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <button id="adminLogoutBtn" class="logout-btn">Log Out</button>
+      </div>
+    </nav>
+
+    <!-- Content area — all sections are injected here by admin.js -->
+    <main id="adminContent">
+      <div class="loading-msg">Loading...</div>
+    </main>
+
+  </div>
+
+  <script src="js/sheets.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

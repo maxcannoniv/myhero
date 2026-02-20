@@ -3,6 +3,7 @@
 // Reads/writes to Google Sheets via service account
 
 const { google } = require('googleapis');
+const crypto = require('crypto');
 
 const SPREADSHEET_ID = '1Vuz-tDEt5pC2qsw40WDjt5tbvVBsNYaBjHSMp-F9NYc';
 
@@ -731,6 +732,860 @@ async function handleGetCharacter(data) {
 }
 
 // -----------------------------------------------
+// ADMIN HELPERS
+// -----------------------------------------------
+
+// Verify that a request includes the correct admin token.
+// The token is sha256(ADMIN_PASSWORD). Set ADMIN_PASSWORD in Netlify env vars.
+function verifyAdmin(data) {
+  if (!process.env.ADMIN_PASSWORD) return false;
+  var expected = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD).digest('hex');
+  return data.adminToken === expected;
+}
+
+// Convert a 0-based column index to a Sheets column letter (A, B, ..., Z, AA, AB, ...).
+// Works up to column ZZ (702 columns) which is far more than we'll ever need.
+function colNumToLetter(n) {
+  var s = '';
+  n = n + 1; // convert to 1-based
+  while (n > 0) {
+    n--;
+    s = String.fromCharCode(65 + (n % 26)) + s;
+    n = Math.floor(n / 26);
+  }
+  return s;
+}
+
+// Add neutral reputation rows for ALL existing players against a newly created faction.
+// Called automatically when adminSaveFaction creates a new faction.
+async function addReputationRowsForFaction(sheets, factionName) {
+  var playerRows = await readTab(sheets, 'Players');
+  if (playerRows.length < 2) return;
+  var players = rowsToObjects(playerRows);
+
+  // Find which players already have a reputation row for this faction
+  var repRows = await readTab(sheets, 'Reputation');
+  var existing = new Set();
+  if (repRows.length > 1) {
+    rowsToObjects(repRows).forEach(function(r) {
+      if (r.faction_name === factionName) existing.add(r.hero_name);
+    });
+  }
+
+  var newRows = [];
+  players.forEach(function(p) {
+    if (p.hero_name && !existing.has(p.hero_name)) {
+      newRows.push([p.hero_name, factionName, 'neutral']);
+    }
+  });
+
+  if (newRows.length > 0) {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Reputation!A:A',
+      valueInputOption: 'RAW',
+      requestBody: { values: newRows }
+    });
+  }
+}
+
+// -----------------------------------------------
+// PLAYER-ACCESSIBLE ENDPOINTS (no admin token needed)
+// -----------------------------------------------
+
+// Return all characters where profile_visible = yes (for Bliink cutout picker, etc.)
+async function handleGetCharacters(data) {
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Characters');
+  var all = rowsToObjects(rows);
+  var visible = all.filter(function(c) { return c.profile_visible === 'yes'; });
+  return { success: true, characters: visible };
+}
+
+// Return all places from the Places tab (for Bliink background picker)
+async function handleGetPlaces(data) {
+  var sheets = getSheets();
+  try {
+    var rows = await readTab(sheets, 'Places');
+    return { success: true, places: rowsToObjects(rows) };
+  } catch (e) {
+    return { success: true, places: [] };
+  }
+}
+
+// -----------------------------------------------
+// ADMIN HANDLERS
+// -----------------------------------------------
+
+async function handleAdminLogin(data) {
+  var adminPassword = process.env.ADMIN_PASSWORD || '';
+  if (!adminPassword) {
+    return { success: false, error: 'ADMIN_PASSWORD environment variable is not set.' };
+  }
+  var expectedHash = crypto.createHash('sha256').update(adminPassword).digest('hex');
+  if (data.passwordHash === expectedHash) {
+    return { success: true, token: expectedHash };
+  }
+  return { success: false, error: 'Incorrect password.' };
+}
+
+async function handleAdminGetOverview(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  var [playerRows, msgRows, subRows, charRows] = await Promise.all([
+    readTab(sheets, 'Players'),
+    readTab(sheets, 'Messages'),
+    readTab(sheets, 'MissionSubmissions'),
+    readTab(sheets, 'Characters'),
+  ]);
+
+  var playerCount = Math.max(0, playerRows.length - 1);
+
+  // Get NPC names to find unread messages sent to NPCs
+  var npcs = new Set();
+  if (charRows.length > 1) {
+    rowsToObjects(charRows).forEach(function(c) {
+      if (c.type === 'npc') npcs.add(c.character_name);
+    });
+  }
+
+  var unreadNpcMessages = 0;
+  if (msgRows.length > 1) {
+    rowsToObjects(msgRows).forEach(function(m) {
+      if (npcs.has(m.to_character) && m.read !== 'yes') unreadNpcMessages++;
+    });
+  }
+
+  var pendingMissions = 0;
+  if (subRows.length > 1) {
+    rowsToObjects(subRows).forEach(function(s) {
+      if (s.resolved !== 'yes') pendingMissions++;
+    });
+  }
+
+  var cycleInfo = await getCurrentCycle(sheets);
+
+  return {
+    success: true,
+    playerCount: playerCount,
+    unreadNpcMessages: unreadNpcMessages,
+    pendingMissions: pendingMissions,
+    currentCycle: cycleInfo.cycle
+  };
+}
+
+// Returns all NPC conversations, organized as: NPC → list of threads with other characters.
+async function handleAdminGetNPCInbox(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  var [charRows, msgRows] = await Promise.all([
+    readTab(sheets, 'Characters'),
+    readTab(sheets, 'Messages'),
+  ]);
+
+  var npcs = new Set();
+  if (charRows.length > 1) {
+    rowsToObjects(charRows).forEach(function(c) {
+      if (c.type === 'npc') npcs.add(c.character_name);
+    });
+  }
+
+  // For each NPC, build a map of { otherPerson: { messages, unreadCount } }
+  var npcMap = {};
+  npcs.forEach(function(name) {
+    npcMap[name] = { conversations: {}, totalUnread: 0 };
+  });
+
+  if (msgRows.length > 1) {
+    rowsToObjects(msgRows).forEach(function(m) {
+      var npcName = null;
+      var otherPerson = null;
+
+      if (npcs.has(m.to_character)) {
+        npcName = m.to_character;
+        otherPerson = m.from_character;
+      } else if (npcs.has(m.from_character)) {
+        npcName = m.from_character;
+        otherPerson = m.to_character;
+      }
+
+      if (!npcName || !otherPerson) return;
+      if (!npcMap[npcName]) npcMap[npcName] = { conversations: {}, totalUnread: 0 };
+
+      if (!npcMap[npcName].conversations[otherPerson]) {
+        npcMap[npcName].conversations[otherPerson] = { with: otherPerson, messages: [], unreadCount: 0 };
+      }
+
+      npcMap[npcName].conversations[otherPerson].messages.push(m);
+
+      // Only count messages sent TO the NPC (not from the NPC) as "unread"
+      if (m.to_character === npcName && m.read !== 'yes') {
+        npcMap[npcName].conversations[otherPerson].unreadCount++;
+        npcMap[npcName].totalUnread++;
+      }
+    });
+  }
+
+  // Sort messages in each thread chronologically, conversations by most recent
+  var result = Object.keys(npcMap).map(function(npcName) {
+    var npc = npcMap[npcName];
+    var convs = Object.values(npc.conversations);
+    convs.forEach(function(conv) {
+      conv.messages.sort(function(a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+    });
+    convs.sort(function(a, b) {
+      var lastA = a.messages[a.messages.length - 1] || {};
+      var lastB = b.messages[b.messages.length - 1] || {};
+      return new Date(lastB.timestamp) - new Date(lastA.timestamp);
+    });
+    return { npcName: npcName, conversations: convs, totalUnread: npc.totalUnread };
+  });
+
+  result.sort(function(a, b) { return b.totalUnread - a.totalUnread; });
+  result = result.filter(function(n) { return n.conversations.length > 0; });
+
+  return { success: true, inbox: result };
+}
+
+// Send a message as any NPC. Does not add to Contacts (NPC doesn't have contacts).
+async function handleAdminSendMessage(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  if (!data.from || !data.to || !data.body) {
+    return { success: false, error: 'Missing required fields: from, to, body.' };
+  }
+
+  var now = new Date();
+  var timestamp = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + ' ' +
+    String(now.getHours()).padStart(2, '0') + ':' +
+    String(now.getMinutes()).padStart(2, '0');
+
+  var cycleInfo = await getCurrentCycle(sheets);
+  var cycleId = computeCycleId(cycleInfo.cycle, cycleInfo.cycleStart);
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Messages!A:A',
+    valueInputOption: 'RAW',
+    requestBody: { values: [[data.from, data.to, data.body, timestamp, 'no', cycleId]] }
+  });
+
+  return { success: true };
+}
+
+// Get all posts including drafts. Includes _row field so adminUpdatePost can target the right row.
+async function handleAdminGetAllPosts(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Feeds');
+  if (rows.length < 2) return { success: true, posts: [] };
+
+  var headers = rows[0];
+  var posts = [];
+  for (var i = 1; i < rows.length; i++) {
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      obj[headers[j]] = rows[i][j] !== undefined ? rows[i][j] : '';
+    }
+    obj._row = i + 1; // 1-based row number in Sheets (row 1 = header)
+    posts.push(obj);
+  }
+
+  posts.sort(function(a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
+  return { success: true, posts: posts };
+}
+
+// Create a post from the admin portal. Supports visible=no for drafts.
+async function handleAdminCreatePost(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  if (!data.feed || !data.posted_by || !data.body) {
+    return { success: false, error: 'Missing required fields: feed, posted_by, body.' };
+  }
+
+  var now = new Date();
+  var timestamp = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + ' ' +
+    String(now.getHours()).padStart(2, '0') + ':' +
+    String(now.getMinutes()).padStart(2, '0');
+
+  var cycleInfo = await getCurrentCycle(sheets);
+  var cycleId = computeCycleId(cycleInfo.cycle, cycleInfo.cycleStart);
+
+  var newRow = [
+    data.feed,
+    data.posted_by,
+    data.posted_by_type || 'character',
+    data.title || '',
+    data.image_url || '',
+    data.body,
+    timestamp,
+    data.visible !== undefined ? data.visible : 'yes',
+    data.cutout_url || '',
+    cycleId
+  ];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Feeds!A:A',
+    valueInputOption: 'RAW',
+    requestBody: { values: [newRow] }
+  });
+
+  return { success: true };
+}
+
+// Toggle the visible field of a post. data.row = 1-based Sheets row number.
+async function handleAdminUpdatePost(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  if (!data.row || data.visible === undefined) {
+    return { success: false, error: 'Missing row or visible field.' };
+  }
+
+  var rows = await readTab(sheets, 'Feeds');
+  if (rows.length < 1) return { success: false, error: 'Feeds tab not found.' };
+
+  var visibleCol = rows[0].indexOf('visible');
+  if (visibleCol === -1) return { success: false, error: 'No visible column in Feeds.' };
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Feeds!' + colNumToLetter(visibleCol) + data.row,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[data.visible]] }
+  });
+
+  return { success: true };
+}
+
+// Get all mission submissions with mission title info for context.
+async function handleAdminGetMissionSubmissions(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  var [subRows, missionRows] = await Promise.all([
+    readTab(sheets, 'MissionSubmissions'),
+    readTab(sheets, 'Missions'),
+  ]);
+
+  if (subRows.length < 2) return { success: true, submissions: [], missions: [] };
+
+  var headers = subRows[0];
+  var submissions = [];
+  for (var i = 1; i < subRows.length; i++) {
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      obj[headers[j]] = subRows[i][j] !== undefined ? subRows[i][j] : '';
+    }
+    obj._row = i + 1;
+    submissions.push(obj);
+  }
+
+  var missions = rowsToObjects(missionRows);
+  return { success: true, submissions: submissions, missions: missions };
+}
+
+// Set dm_override and/or resolved on a mission submission. Identified by submission_id.
+async function handleAdminResolveMission(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  if (!data.submissionId) return { success: false, error: 'Missing submissionId.' };
+
+  var rows = await readTab(sheets, 'MissionSubmissions');
+  if (rows.length < 2) return { success: false, error: 'No submissions found.' };
+
+  var headers = rows[0];
+  var idCol = headers.indexOf('submission_id');
+  var dmOverrideCol = headers.indexOf('dm_override');
+  var resolvedCol = headers.indexOf('resolved');
+
+  if (idCol === -1) return { success: false, error: 'submission_id column not found.' };
+
+  var targetRow = -1;
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][idCol] === data.submissionId) {
+      targetRow = i + 1;
+      break;
+    }
+  }
+
+  if (targetRow === -1) return { success: false, error: 'Submission not found.' };
+
+  var updates = [];
+  if (data.dmOverride !== undefined && dmOverrideCol !== -1) {
+    updates.push({
+      range: 'MissionSubmissions!' + colNumToLetter(dmOverrideCol) + targetRow,
+      values: [[data.dmOverride]]
+    });
+  }
+  if (data.resolved !== undefined && resolvedCol !== -1) {
+    updates.push({
+      range: 'MissionSubmissions!' + colNumToLetter(resolvedCol) + targetRow,
+      values: [[data.resolved]]
+    });
+  }
+
+  if (updates.length > 0) {
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: { valueInputOption: 'RAW', data: updates }
+    });
+  }
+
+  return { success: true };
+}
+
+// Increment current_cycle by 1 and update cycle_start to now.
+async function handleAdminAdvanceCycle(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Settings');
+  if (rows.length < 2) return { success: false, error: 'Settings tab not configured.' };
+
+  var currentCycleRow = -1;
+  var cycleStartRow = -1;
+  var currentCycle = 1;
+
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === 'current_cycle') {
+      currentCycleRow = i + 1;
+      currentCycle = parseInt(rows[i][1]) || 1;
+    }
+    if (rows[i][0] === 'cycle_start') {
+      cycleStartRow = i + 1;
+    }
+  }
+
+  if (currentCycleRow === -1) return { success: false, error: 'current_cycle not found in Settings tab.' };
+
+  var newCycle = currentCycle + 1;
+  var newStart = new Date().toISOString();
+
+  var updates = [
+    { range: 'Settings!B' + currentCycleRow, values: [[String(newCycle)]] }
+  ];
+  if (cycleStartRow !== -1) {
+    updates.push({ range: 'Settings!B' + cycleStartRow, values: [[newStart]] });
+  }
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: { valueInputOption: 'RAW', data: updates }
+  });
+
+  return { success: true, newCycle: newCycle, newStart: newStart };
+}
+
+// Get all players (excluding password_hash).
+async function handleAdminGetPlayers(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Players');
+  if (rows.length < 2) return { success: true, players: [] };
+
+  var headers = rows[0];
+  var players = [];
+  for (var i = 1; i < rows.length; i++) {
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      if (headers[j] === 'password_hash') continue;
+      obj[headers[j]] = rows[i][j] !== undefined ? rows[i][j] : '';
+    }
+    obj._row = i + 1;
+    players.push(obj);
+  }
+
+  return { success: true, players: players };
+}
+
+// Update specific stat columns for a player. data.updates = { field: value, ... }.
+async function handleAdminUpdatePlayer(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  if (!data.username || !data.updates) return { success: false, error: 'Missing username or updates.' };
+
+  var rows = await readTab(sheets, 'Players');
+  if (rows.length < 2) return { success: false, error: 'No players found.' };
+
+  var headers = rows[0];
+  var usernameCol = headers.indexOf('username');
+
+  var targetRow = -1;
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][usernameCol] && rows[i][usernameCol].toString().toLowerCase() === data.username.toLowerCase()) {
+      targetRow = i + 1;
+      break;
+    }
+  }
+
+  if (targetRow === -1) return { success: false, error: 'Player not found.' };
+
+  var updates = [];
+  Object.keys(data.updates).forEach(function(field) {
+    if (field === 'password_hash') return; // never allow this via admin endpoint
+    var colIdx = headers.indexOf(field);
+    if (colIdx !== -1) {
+      updates.push({
+        range: 'Players!' + colNumToLetter(colIdx) + targetRow,
+        values: [[data.updates[field]]]
+      });
+    }
+  });
+
+  if (updates.length === 0) return { success: false, error: 'No valid fields to update.' };
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: { valueInputOption: 'RAW', data: updates }
+  });
+
+  return { success: true };
+}
+
+// Get all reputation rows plus faction names and player names for building the grid.
+async function handleAdminGetReputation(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  var [repRows, factionRows, playerRows] = await Promise.all([
+    readTab(sheets, 'Reputation'),
+    readTab(sheets, 'Factions'),
+    readTab(sheets, 'Players'),
+  ]);
+
+  var reputation = rowsToObjects(repRows);
+  var factions = rowsToObjects(factionRows).map(function(f) { return f.faction_name; }).filter(Boolean);
+  var players = rowsToObjects(playerRows).map(function(p) { return p.hero_name; }).filter(Boolean);
+
+  return { success: true, reputation: reputation, factions: factions, players: players };
+}
+
+// Update (or create) a single player × faction reputation row.
+async function handleAdminUpdateReputation(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  if (!data.heroName || !data.factionName || !data.reputation) {
+    return { success: false, error: 'Missing heroName, factionName, or reputation.' };
+  }
+
+  var rows = await readTab(sheets, 'Reputation');
+  if (rows.length < 1) return { success: false, error: 'Reputation tab not found.' };
+
+  var headers = rows[0];
+  var heroCol = headers.indexOf('hero_name');
+  var factionCol = headers.indexOf('faction_name');
+  var repCol = headers.indexOf('reputation');
+
+  if (heroCol === -1 || factionCol === -1 || repCol === -1) {
+    return { success: false, error: 'Missing required columns in Reputation tab.' };
+  }
+
+  var targetRow = -1;
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][heroCol] === data.heroName && rows[i][factionCol] === data.factionName) {
+      targetRow = i + 1;
+      break;
+    }
+  }
+
+  if (targetRow === -1) {
+    // Row doesn't exist — append it
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Reputation!A:A',
+      valueInputOption: 'RAW',
+      requestBody: { values: [[data.heroName, data.factionName, data.reputation]] }
+    });
+  } else {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Reputation!' + colNumToLetter(repCol) + targetRow,
+      valueInputOption: 'RAW',
+      requestBody: { values: [[data.reputation]] }
+    });
+  }
+
+  return { success: true };
+}
+
+// Get all characters including hidden ones (profile_visible=no).
+async function handleAdminGetAllCharacters(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Characters');
+  return { success: true, characters: rowsToObjects(rows) };
+}
+
+// Create or update a character. Ensures profile_url and cutout_url columns exist.
+async function handleAdminSaveCharacter(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  if (!data.character_name) return { success: false, error: 'Missing character_name.' };
+
+  var rows = await readTab(sheets, 'Characters');
+  if (rows.length < 1) return { success: false, error: 'Characters tab not found.' };
+
+  var headers = rows[0].slice(); // copy so we can mutate
+
+  // Ensure profile_url column exists
+  if (headers.indexOf('profile_url') === -1) {
+    var newIdx = headers.length;
+    headers.push('profile_url');
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Characters!' + colNumToLetter(newIdx) + '1',
+      valueInputOption: 'RAW',
+      requestBody: { values: [['profile_url']] }
+    });
+  }
+
+  // Ensure cutout_url column exists
+  if (headers.indexOf('cutout_url') === -1) {
+    var newIdx2 = headers.length;
+    headers.push('cutout_url');
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Characters!' + colNumToLetter(newIdx2) + '1',
+      valueInputOption: 'RAW',
+      requestBody: { values: [['cutout_url']] }
+    });
+  }
+
+  // Find existing row
+  var nameCol = headers.indexOf('character_name');
+  var targetRow = -1;
+  if (nameCol !== -1) {
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][nameCol] === data.character_name) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+  }
+
+  if (targetRow === -1) {
+    // New character — build row in header order
+    var newRow = headers.map(function(h) { return data[h] !== undefined ? data[h] : ''; });
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Characters!A:A',
+      valueInputOption: 'RAW',
+      requestBody: { values: [newRow] }
+    });
+  } else {
+    // Update existing — only update fields provided in data
+    var updates = [];
+    headers.forEach(function(h, idx) {
+      if (data[h] !== undefined) {
+        updates.push({ range: 'Characters!' + colNumToLetter(idx) + targetRow, values: [[data[h]]] });
+      }
+    });
+    if (updates.length > 0) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: { valueInputOption: 'RAW', data: updates }
+      });
+    }
+  }
+
+  return { success: true };
+}
+
+// Get all factions.
+async function handleAdminGetFactions(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Factions');
+  return { success: true, factions: rowsToObjects(rows) };
+}
+
+// Create or update a faction. Ensures banner_url column exists.
+// On create: auto-adds neutral reputation rows for all existing players.
+async function handleAdminSaveFaction(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  if (!data.faction_name) return { success: false, error: 'Missing faction_name.' };
+
+  var rows = await readTab(sheets, 'Factions');
+  if (rows.length < 1) return { success: false, error: 'Factions tab not found.' };
+
+  var headers = rows[0].slice();
+
+  // Ensure banner_url column exists
+  if (headers.indexOf('banner_url') === -1) {
+    var bannerIdx = headers.length;
+    headers.push('banner_url');
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Factions!' + colNumToLetter(bannerIdx) + '1',
+      valueInputOption: 'RAW',
+      requestBody: { values: [['banner_url']] }
+    });
+  }
+
+  var nameCol = headers.indexOf('faction_name');
+  var targetRow = -1;
+  var isNew = false;
+
+  if (nameCol !== -1) {
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][nameCol] === data.faction_name) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+  }
+
+  if (targetRow === -1) {
+    isNew = true;
+    var newRow = headers.map(function(h) { return data[h] !== undefined ? data[h] : ''; });
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Factions!A:A',
+      valueInputOption: 'RAW',
+      requestBody: { values: [newRow] }
+    });
+    // Auto-add neutral reputation rows for all existing players
+    await addReputationRowsForFaction(sheets, data.faction_name);
+  } else {
+    var updates = [];
+    headers.forEach(function(h, idx) {
+      if (data[h] !== undefined) {
+        updates.push({ range: 'Factions!' + colNumToLetter(idx) + targetRow, values: [[data[h]]] });
+      }
+    });
+    if (updates.length > 0) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: { valueInputOption: 'RAW', data: updates }
+      });
+    }
+  }
+
+  return { success: true, isNew: isNew };
+}
+
+// Upload an image to imgbb. Receives base64 string, returns public URL.
+async function handleAdminUploadImage(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  if (!data.imageBase64) return { success: false, error: 'Missing imageBase64.' };
+
+  var apiKey = process.env.IMGBB_API_KEY;
+  if (!apiKey) return { success: false, error: 'IMGBB_API_KEY environment variable is not set.' };
+
+  var params = new URLSearchParams();
+  params.append('key', apiKey);
+  params.append('image', data.imageBase64);
+  if (data.imageName) params.append('name', data.imageName.replace(/\.[^.]+$/, '')); // strip extension
+
+  var response = await fetch('https://api.imgbb.com/1/upload', {
+    method: 'POST',
+    body: params
+  });
+
+  var result = await response.json();
+
+  if (result.success && result.data && result.data.url) {
+    return { success: true, url: result.data.url };
+  }
+
+  var errMsg = (result.error && result.error.message) ? result.error.message : 'Upload failed';
+  return { success: false, error: 'imgbb: ' + errMsg };
+}
+
+// Get all places from the Places tab.
+async function handleAdminGetPlaces(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  try {
+    var rows = await readTab(sheets, 'Places');
+    return { success: true, places: rowsToObjects(rows) };
+  } catch (e) {
+    return { success: true, places: [] };
+  }
+}
+
+// Create or update a place in the Places tab. Creates header row if tab is empty.
+async function handleAdminSavePlace(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+
+  var sheets = getSheets();
+  if (!data.slug || !data.label) return { success: false, error: 'Missing slug or label.' };
+
+  var rows;
+  try {
+    rows = await readTab(sheets, 'Places');
+  } catch (e) {
+    return { success: false, error: 'Places tab does not exist. Create it in Google Sheets with header row: slug, label, background_url' };
+  }
+
+  // If empty tab, write header row first
+  if (!rows || rows.length === 0) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Places!A1',
+      valueInputOption: 'RAW',
+      requestBody: { values: [['slug', 'label', 'background_url']] }
+    });
+    rows = [['slug', 'label', 'background_url']];
+  }
+
+  var headers = rows[0];
+  var slugCol = headers.indexOf('slug');
+  var targetRow = -1;
+
+  if (slugCol !== -1) {
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][slugCol] === data.slug) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+  }
+
+  var newRow = headers.map(function(h) { return data[h] !== undefined ? data[h] : ''; });
+
+  if (targetRow === -1) {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Places!A:A',
+      valueInputOption: 'RAW',
+      requestBody: { values: [newRow] }
+    });
+  } else {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Places!A' + targetRow,
+      valueInputOption: 'RAW',
+      requestBody: { values: [newRow] }
+    });
+  }
+
+  return { success: true };
+}
+
+// -----------------------------------------------
 // MAIN HANDLER — routes requests to the right function
 // -----------------------------------------------
 
@@ -776,6 +1631,31 @@ exports.handler = async function(event) {
     else if (action === 'getMissions') result = await handleGetMissions(data);
     else if (action === 'getMissionQuestions') result = await handleGetMissionQuestions(data);
     else if (action === 'submitMission') result = await handleSubmitMission(data);
+    // Player-accessible endpoints (no admin token)
+    else if (action === 'getCharacters') result = await handleGetCharacters(data);
+    else if (action === 'getPlaces') result = await handleGetPlaces(data);
+    // Admin endpoints (all require adminToken)
+    else if (action === 'adminLogin') result = await handleAdminLogin(data);
+    else if (action === 'adminGetOverview') result = await handleAdminGetOverview(data);
+    else if (action === 'adminGetNPCInbox') result = await handleAdminGetNPCInbox(data);
+    else if (action === 'adminSendMessage') result = await handleAdminSendMessage(data);
+    else if (action === 'adminGetAllPosts') result = await handleAdminGetAllPosts(data);
+    else if (action === 'adminCreatePost') result = await handleAdminCreatePost(data);
+    else if (action === 'adminUpdatePost') result = await handleAdminUpdatePost(data);
+    else if (action === 'adminGetMissionSubmissions') result = await handleAdminGetMissionSubmissions(data);
+    else if (action === 'adminResolveMission') result = await handleAdminResolveMission(data);
+    else if (action === 'adminAdvanceCycle') result = await handleAdminAdvanceCycle(data);
+    else if (action === 'adminGetPlayers') result = await handleAdminGetPlayers(data);
+    else if (action === 'adminUpdatePlayer') result = await handleAdminUpdatePlayer(data);
+    else if (action === 'adminGetReputation') result = await handleAdminGetReputation(data);
+    else if (action === 'adminUpdateReputation') result = await handleAdminUpdateReputation(data);
+    else if (action === 'adminGetAllCharacters') result = await handleAdminGetAllCharacters(data);
+    else if (action === 'adminSaveCharacter') result = await handleAdminSaveCharacter(data);
+    else if (action === 'adminGetFactions') result = await handleAdminGetFactions(data);
+    else if (action === 'adminSaveFaction') result = await handleAdminSaveFaction(data);
+    else if (action === 'adminUploadImage') result = await handleAdminUploadImage(data);
+    else if (action === 'adminGetPlaces') result = await handleAdminGetPlaces(data);
+    else if (action === 'adminSavePlace') result = await handleAdminSavePlace(data);
     else result = { success: false, error: 'Unknown action: ' + action };
 
     return {

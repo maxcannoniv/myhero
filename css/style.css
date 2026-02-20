@@ -1698,6 +1698,15 @@ select.form-input option {
   color: var(--accent-red);
 }
 
+/* Banner image — shown when faction has a banner_url (uploaded via admin portal) */
+.faction-popup-banner {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  display: block;
+  border-bottom: var(--border-thick) solid var(--border-comic);
+}
+
 /* Dark banner header with faction name */
 .faction-popup-header {
   background: #0d0d0d;

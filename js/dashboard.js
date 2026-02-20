@@ -483,10 +483,11 @@ function openCharacterPopup(characterName) {
         factionEl.textContent = 'Independent';
       }
       document.getElementById('charPopupBio').textContent = c.bio || '';
-      // Show profile photo if one exists, otherwise fall back to first initial
+      // Show profile photo: prefer profile_url (imgbb), fall back to asset_slug path, else initial
       var avatarEl = document.getElementById('charPopupAvatar');
-      if (c.asset_slug) {
-        avatarEl.innerHTML = '<img src="/assets/characters/' + c.asset_slug + '/profile.png" alt="' + c.character_name + '">';
+      var profileImgSrc = c.profile_url || (c.asset_slug ? '/assets/characters/' + c.asset_slug + '/profile.png' : '');
+      if (profileImgSrc) {
+        avatarEl.innerHTML = '<img src="' + profileImgSrc + '" alt="' + c.character_name + '">';
       } else {
         avatarEl.textContent = c.character_name.charAt(0).toUpperCase();
       }
@@ -571,6 +572,17 @@ function openFactionPopup(factionName) {
       var f = result.faction;
       document.getElementById('factionPopupName').textContent = f.faction_name;
       document.getElementById('factionPopupDesc').textContent = f.description || '';
+
+      // Show banner image if one exists (banner_url set via admin portal)
+      var bannerEl = document.getElementById('factionPopupBanner');
+      if (bannerEl) {
+        if (f.banner_url) {
+          bannerEl.src = f.banner_url;
+          bannerEl.style.display = 'block';
+        } else {
+          bannerEl.style.display = 'none';
+        }
+      }
 
       // Show leader as a clickable name if one exists
       if (f.leader) {
@@ -670,25 +682,17 @@ function makeNamesClickable(container) {
 // BLIINK — Post Creation
 // -----------------------------------------------
 
-// Background images for Bliink posts (place scenes from assets/places/).
-// Add an entry here when you add a new assets/places/{slug}/background.png.
-// Placeholder URLs are used until real place assets exist.
-var BLIINK_BACKGROUNDS = [
+// Hardcoded fallback backgrounds — shown only if the Places tab in Sheets is empty.
+// The DM adds real backgrounds through the admin portal, which stores them in Places tab.
+var BLIINK_BACKGROUNDS_FALLBACK = [
   { label: 'City Skyline', url: 'https://placehold.co/600x600/1a1a2e/f5c518?text=CITY+SKYLINE' },
   { label: 'Downtown',     url: 'https://placehold.co/600x600/16213e/4fc3f7?text=DOWNTOWN' },
   { label: 'The Docks',    url: 'https://placehold.co/600x600/0f3460/a0a0b0?text=THE+DOCKS' },
-  { label: 'Night Out',    url: 'https://placehold.co/600x600/2a1a2e/bb86fc?text=NIGHT+OUT' },
-  { label: 'Training',     url: 'https://placehold.co/600x600/1a2e1a/00c853?text=TRAINING' },
-  { label: 'On the Job',   url: 'https://placehold.co/600x600/2e2a1a/f5c518?text=ON+THE+JOB' },
-  { label: 'Selfie',       url: 'https://placehold.co/600x600/1a1a2e/e94560?text=SELFIE' },
-  { label: 'Meetup',       url: 'https://placehold.co/600x600/1a2e2e/4fc3f7?text=MEETUP' },
-  { label: 'Victory',      url: 'https://placehold.co/600x600/2e1a1a/f5c518?text=VICTORY' },
   { label: "Mongrel's Towing Yard", url: '/assets/places/mongrels-towing-yard/background.png' },
 ];
 
-// Character cutouts for layering over backgrounds.
-// Add an entry here when you add assets/characters/{slug}/cutout.png.
-var BLIINK_CUTOUTS = [
+// Hardcoded fallback cutouts — shown only if no characters in Sheets have a cutout_url set.
+var BLIINK_CUTOUTS_FALLBACK = [
   { label: 'Bloodhound',  url: '/assets/characters/bloodhound/cutout.png' },
   { label: 'Mongrel',     url: '/assets/characters/mongrel/cutout.png' },
   { label: 'Dozer',       url: '/assets/characters/dozer/cutout.png' },
@@ -699,8 +703,8 @@ var BLIINK_CUTOUTS = [
 var selectedBgUrl = null;
 var selectedCutoutUrl = null;
 
-// Build a picker grid and return it — used for both backgrounds and cutouts
-function buildPickerGrid(gridEl, items, onSelect, getSelected) {
+// Build a picker grid — used for both backgrounds and cutouts
+function buildPickerGrid(gridEl, items, onSelect, isCutout) {
   if (!gridEl) return;
 
   if (items.length === 0) {
@@ -708,6 +712,7 @@ function buildPickerGrid(gridEl, items, onSelect, getSelected) {
     return;
   }
 
+  gridEl.innerHTML = '';
   items.forEach(function(item) {
     var tile = document.createElement('div');
     tile.className = 'bl-preset-tile';
@@ -715,17 +720,14 @@ function buildPickerGrid(gridEl, items, onSelect, getSelected) {
       '<span>' + item.label + '</span>';
 
     tile.addEventListener('click', function() {
-      // If already selected, deselect (cutout is optional)
-      if (tile.classList.contains('selected') && gridEl.id === 'bliinkCutoutGrid') {
+      // Cutout is optional — clicking again deselects it
+      if (isCutout && tile.classList.contains('selected')) {
         tile.classList.remove('selected');
         onSelect(null);
         updateComposerPreview();
         return;
       }
-      // Deselect others in this grid, select this tile
-      gridEl.querySelectorAll('.bl-preset-tile').forEach(function(t) {
-        t.classList.remove('selected');
-      });
+      gridEl.querySelectorAll('.bl-preset-tile').forEach(function(t) { t.classList.remove('selected'); });
       tile.classList.add('selected');
       onSelect(item.url);
       updateComposerPreview();
@@ -757,20 +759,39 @@ function updateComposerPreview() {
   }
 }
 
-// Build both pickers
-buildPickerGrid(
-  document.getElementById('bliinkBgGrid'),
-  BLIINK_BACKGROUNDS,
-  function(url) { selectedBgUrl = url; },
-  function() { return selectedBgUrl; }
-);
+// Load backgrounds from the Places tab in Sheets. Falls back to hardcoded list if empty.
+sheetsGetPlaces().then(function(result) {
+  var places = (result.success && result.places && result.places.length > 0)
+    ? result.places.filter(function(p) { return p.background_url; }).map(function(p) {
+        return { label: p.label, url: p.background_url };
+      })
+    : BLIINK_BACKGROUNDS_FALLBACK;
 
-buildPickerGrid(
-  document.getElementById('bliinkCutoutGrid'),
-  BLIINK_CUTOUTS,
-  function(url) { selectedCutoutUrl = url; },
-  function() { return selectedCutoutUrl; }
-);
+  buildPickerGrid(
+    document.getElementById('bliinkBgGrid'),
+    places,
+    function(url) { selectedBgUrl = url; },
+    false
+  );
+});
+
+// Load cutouts from characters with cutout_url set. Falls back to hardcoded list if none found.
+sheetsGetCharacters().then(function(result) {
+  var cutouts = [];
+  if (result.success && result.characters) {
+    cutouts = result.characters
+      .filter(function(c) { return c.cutout_url; })
+      .map(function(c) { return { label: c.character_name, url: c.cutout_url }; });
+  }
+  if (cutouts.length === 0) cutouts = BLIINK_CUTOUTS_FALLBACK;
+
+  buildPickerGrid(
+    document.getElementById('bliinkCutoutGrid'),
+    cutouts,
+    function(url) { selectedCutoutUrl = url; },
+    true
+  );
+});
 
 // Show/hide the composer
 var bliinkNewPostBtn = document.getElementById('bliinkNewPostBtn');

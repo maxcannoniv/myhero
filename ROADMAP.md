@@ -44,35 +44,36 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [ ] **2.9 Notebook system** — NoteContent tab in Sheets, secret content loaded by content_id, popup overlay display
 - [ ] **2.10 Save-as-note from messages** — Players can save NPC messages as notes to their notebook
 
-### Phase 3: Admin Dashboard
+### Phase 3: Admin Dashboard — MOSTLY COMPLETE
 > DM tools to manage the game world behind the scenes. Ordered by priority — see Game Manager Reference in CLAUDE.md for the full task list and reasoning.
 
-- [ ] **3.1 Admin login** — Separate admin login (or admin flag on account) to access DM tools. Simple: hardcoded admin username/password in environment variable, no need for a full user system.
-- [ ] **3.2 Admin dashboard shell** — Admin-only page. Sidebar nav with sections matching the task list below.
+- [x] **3.1 Admin login** — Separate admin login (or admin flag on account) to access DM tools. Simple: hardcoded admin username/password in environment variable, no need for a full user system.
+- [x] **3.2 Admin dashboard shell** — Admin-only page. Sidebar nav with sections matching the task list below.
 
 **Cycle (do this every resolution window):**
-- [ ] **3.3 Cycle advancement tool** — Button that reads current cycle, increments it by 1, writes new `cycle_start` timestamp to Settings tab automatically. Shows current cycle status at a glance.
-- [ ] **3.4 Mission answer reviewer** — Read player mission submissions, show them grouped by mission and player for DM review. (Depends on Phase 6.)
+- [x] **3.3 Cycle advancement tool** — Button that reads current cycle, increments it by 1, writes new `cycle_start` timestamp to Settings tab automatically. Shows current cycle status at a glance.
+- [x] **3.4 Mission answer reviewer** — Read player mission submissions, show them grouped by mission and player for DM review. (Depends on Phase 6.)
 
 **Messaging & Content (most frequent tasks):**
-- [ ] **3.5 NPC message composer** — Form: pick sender (NPC), pick recipient (player), write body. Writes correctly to Messages tab with proper column order and current cycle_id. Highest priority.
-- [ ] **3.6 Feed post composer** — Form: pick feed, pick posted_by character, write title + body, optional image URL, optional cutout URL. Auto-fills timestamp and cycle_id. Publishes or saves as draft (visible = no). `[Name]` syntax works as normal.
+- [x] **3.5 NPC message composer** — Form: pick sender (NPC), pick recipient (player), write body. Writes correctly to Messages tab with proper column order and current cycle_id. Highest priority.
+- [x] **3.6 Feed post composer** — Form: pick feed, pick posted_by character, write title + body, optional image URL, optional cutout URL. Auto-fills timestamp and cycle_id. Publishes or saves as draft (visible = no). `[Name]` syntax works as normal.
 
 **Player management (post-cycle resolution):**
-- [ ] **3.7 Stat editor** — Per-player form to update all 6 skills and all 4 aggregate scores. Prevents column mistakes.
-- [ ] **3.8 Reputation editor** — Grid or dropdown table: player rows × faction columns. Edit any standing (hostile/negative/neutral/positive/ally) in one view.
+- [x] **3.7 Stat editor** — Per-player form to update all 6 skills and all 4 aggregate scores. Prevents column mistakes.
+- [x] **3.8 Reputation editor** — Grid or dropdown table: player rows × faction columns. Edit any standing (hostile/negative/neutral/positive/ally) in one view.
 
 **Characters & Factions:**
-- [ ] **3.9 Character creator/editor** — Form to add or edit NPC characters (name, class, bio, faction, faction_role, profile_visible). Reveal hidden NPCs with a toggle.
-- [ ] **3.10 Faction creator/editor** — Form to add or edit factions (name, description, power_multiplier, leader, members_public). Auto-runs reputation fill for all existing players when a new faction is created.
-- [ ] **3.11 Character roster view** — Table of all characters (player + NPC) with inline editing for bio, faction_role, profile_visible.
+- [x] **3.9 Character creator/editor** — Form to add or edit NPC characters (name, class, bio, faction, faction_role, profile_visible). Reveal hidden NPCs with a toggle.
+- [x] **3.10 Faction creator/editor** — Form to add or edit factions (name, description, power_multiplier, leader, members_public). Auto-runs reputation fill for all existing players when a new faction is created.
+- [x] **3.11 Character roster view** — Table of all characters (player + NPC) with inline editing for bio, faction_role, profile_visible.
 
 **Inventory & Notes:**
 - [ ] **3.12 Inventory/note giver** — Form: pick player, give item (name + description) or note (name + content: title, body_text, image_url). Handles both Inventory tab and NoteContent tab in one operation.
 
 **Utility:**
 - [ ] **3.13 Password reset** — Find a player, generate a new hash, update Players tab.
-- [ ] **3.14 Post visibility toggle** — List all feed posts with a visible/hidden toggle per post. Lets DM draft posts in Sheets and publish from the admin panel.
+- [x] **3.14 Post visibility toggle** — List all feed posts with a visible/hidden toggle per post. Lets DM draft posts in Sheets and publish from the admin panel.
+- [ ] **3.15 In-portal image uploads** — Upload character profile photos, cutouts, faction banners, and place backgrounds directly from the admin portal instead of using the terminal drop-folder workflow. Uses [imgbb](https://imgbb.com) (free image hosting) — create an account, get an API key, add it as `IMGBB_API_KEY` in Netlify env vars. The upload widget is already built into the character/faction/place edit forms; it just needs the API key to activate. Low priority — the existing `process-assets.js` drop-folder workflow covers this fine for now.
 
 ### Phase 3.5: Migrate Backend to Netlify Functions — COMPLETE
 > Eliminate manual Apps Script redeployment. Code auto-deploys with git push.
@@ -109,7 +110,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [x] **4.5.6 Drop folder automation** — `process-assets.js` reads `_drop/{characters,cutouts,factions,places}/`, slugifies filenames, moves files to `assets/`, updates Sheets `asset_slug`, updates `BLIINK_CUTOUTS`/`BLIINK_BACKGROUNDS` in `dashboard.js`.
 - [x] **4.5.7 Asset verification** — `sync-assets.js` cross-references `assets/` folders vs. Sheets. Read-only checker, safe to run anytime.
 - [ ] **4.5.8 Reputation affects visibility** — Higher reputation unlocks more info about a faction or its members (future mechanic)
-- [ ] **4.5.9 Faction banners in popup** — Show faction banner image at top of faction card (assets exist for some factions)
+- [x] **4.5.9 Faction banners in popup** — Show faction banner image at top of faction card. Set `banner_url` column in Factions tab (or via admin portal) to activate.
 
 ### Phase 5: Messaging — COMPLETE
 > 1-on-1 messaging with contact discovery.
@@ -164,7 +165,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [ ] **7.3 Write myHERO job listings** — Hero jobs, missions, activity posts
 - [ ] **7.4 Write NPC Bliink posts** — Use compositing system: pick a background + character cutout, add caption
 - [ ] **7.5 Write The Times Today articles** — City-wide updates all players should see
-- [ ] **7.6 DM posting from admin dashboard** — Post content without editing Sheets directly (requires Phase 3)
+- [x] **7.6 DM posting from admin dashboard** — Post content without editing Sheets directly (Post Composer in admin portal)
 
 ### Phase 8: Influence & Mechanics
 > The systems that make the game feel alive.
@@ -249,9 +250,10 @@ These came up in conversation and should be addressed in future sessions:
 - **Stock market** — Future system, likely tied to Commerce skill and Daily Dollar feed. No design yet.
 - **Thread system** — Narrative sub-structure within Arcs. Design TBD.
 - **Clout formula** — Faction standing × faction power multiplier, details TBD. Reputation tab exists but clout calculation is not wired up yet.
-- **Admin dashboard** — DM tools for managing NPCs, factions, content, stats, missions. Top priority after Missions.
+- ~~**Admin dashboard**~~ — Built. DM portal at `/admin.html` with 10 sections: Dashboard, NPC Inbox, Post Composer, Missions, Cycle, Players, Reputation, Characters, Factions, Places.
 - **Bliink moderation** — New posts go to `visible: no`, DM reviews. "Bliink Quality Control" in-universe.
 - **Custom image uploads for Bliink** — Behind moderation wall
+- **In-portal image uploads (imgbb)** — Upload images directly from the admin portal without touching the terminal. Uses imgbb (free image hosting service) as a middleman — you upload from the browser, imgbb stores it and returns a public URL, URL gets saved to Sheets. The upload widgets are already in the admin portal forms (character, faction, place). Just needs `IMGBB_API_KEY` set in Netlify env vars to activate. See Phase 3.15.
 - **Tagging other characters** — In posts and messages, works for both player and NPC characters
 - **Feed influence mechanics** — Higher aggregate scores = more impact on the game world through posts
 - **Mission content math** — 3 questions × 2 choices = 7 questions per mission; 3 questions × 3 choices = 13 per mission
@@ -259,7 +261,7 @@ These came up in conversation and should be addressed in future sessions:
 - **Notebook system** — NoteContent tab schema defined, but not built. Secret content loaded by content_id, popup overlay display.
 - **Save-as-note from messages** — Players save NPC messages as notes to notebook
 - **Reputation visibility gating** — Using reputation level to control what info players can see about factions/characters
-- **Faction banners in faction popup** — Asset structure supports it (`assets/factions/{slug}/banner.png`), not yet wired into the faction popup UI
+- ~~**Faction banners in faction popup**~~ — Done. Set `banner_url` in Factions tab (or via admin portal Factions section) to display a banner image at the top of the faction popup.
 
 ---
 

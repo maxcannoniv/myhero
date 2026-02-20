@@ -141,3 +141,74 @@ async function sheetsGetMissionQuestions(missionId) {
 async function sheetsSubmitMission(data) {
   return await callAppsScript('submitMission', data);
 }
+
+// --- Characters and Places (player-accessible) ---
+
+// Get all visible characters (used for Bliink cutout picker, etc.)
+async function sheetsGetCharacters() {
+  return await callAppsScript('getCharacters', {});
+}
+
+// Get all places (used for Bliink background picker)
+async function sheetsGetPlaces() {
+  return await callAppsScript('getPlaces', {});
+}
+
+// --- Admin API calls ---
+// All admin calls require an adminToken that is stored in sessionStorage by admin.js.
+// These functions are only used by admin.js, not by the player dashboard.
+
+async function adminCall(action, extraData) {
+  var token = sessionStorage.getItem('myhero_admin_token') || '';
+  var data = Object.assign({ adminToken: token }, extraData || {});
+  return await callAppsScript(action, data);
+}
+
+async function adminLogin(passwordHash) {
+  return await callAppsScript('adminLogin', { passwordHash: passwordHash });
+}
+
+async function adminGetOverview() { return await adminCall('adminGetOverview'); }
+async function adminGetNPCInbox() { return await adminCall('adminGetNPCInbox'); }
+async function adminSendMessage(from, to, body) {
+  return await adminCall('adminSendMessage', { from: from, to: to, body: body });
+}
+async function adminGetAllPosts() { return await adminCall('adminGetAllPosts'); }
+async function adminCreatePost(postData) { return await adminCall('adminCreatePost', postData); }
+async function adminUpdatePost(row, visible) {
+  return await adminCall('adminUpdatePost', { row: row, visible: visible });
+}
+async function adminGetMissionSubmissions() { return await adminCall('adminGetMissionSubmissions'); }
+async function adminResolveMission(submissionId, dmOverride, resolved) {
+  return await adminCall('adminResolveMission', {
+    submissionId: submissionId,
+    dmOverride: dmOverride,
+    resolved: resolved
+  });
+}
+async function adminAdvanceCycle() { return await adminCall('adminAdvanceCycle'); }
+async function adminGetPlayers() { return await adminCall('adminGetPlayers'); }
+async function adminUpdatePlayer(username, updates) {
+  return await adminCall('adminUpdatePlayer', { username: username, updates: updates });
+}
+async function adminGetReputation() { return await adminCall('adminGetReputation'); }
+async function adminUpdateReputation(heroName, factionName, reputation) {
+  return await adminCall('adminUpdateReputation', {
+    heroName: heroName,
+    factionName: factionName,
+    reputation: reputation
+  });
+}
+async function adminGetAllCharacters() { return await adminCall('adminGetAllCharacters'); }
+async function adminSaveCharacter(characterData) {
+  return await adminCall('adminSaveCharacter', characterData);
+}
+async function adminGetFactions() { return await adminCall('adminGetFactions'); }
+async function adminSaveFaction(factionData) {
+  return await adminCall('adminSaveFaction', factionData);
+}
+async function adminUploadImage(imageBase64, imageName) {
+  return await adminCall('adminUploadImage', { imageBase64: imageBase64, imageName: imageName });
+}
+async function adminGetPlaces() { return await adminCall('adminGetPlaces'); }
+async function adminSavePlace(placeData) { return await adminCall('adminSavePlace', placeData); }
