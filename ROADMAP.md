@@ -121,16 +121,40 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [x] **5.5 Character profile popups** — Clickable names in feeds open profile with "Add to Contacts" / "Send Message"
 - [x] **5.6 Auto-add contacts** — Sending a message auto-adds the recipient to contacts
 
-### Phase 6: Missions — NOT STARTED
-> The choose-your-own-adventure branching system (core gameplay).
+### Phase 6: Missions — NOT STARTED — BUILD NEXT
+> Illusion-of-choice mission system. Pre-written outcomes, questions that meander toward them, reactive images per answer. No true branching — no combinatorial explosion.
 
-- [ ] **6.1 Mission data structure** — Define how branching questions are stored in Sheets
-- [ ] **6.2 Mission thumbnails on myHERO feed** — Visual cards for available missions
-- [ ] **6.3 Mission selection** — Players pick 1 of 3 initial missions (locked after choosing)
-- [ ] **6.4 Mission player UI** — Sequential question screens, no going back
-- [ ] **6.5 Branching logic** — Player's answer determines next question (3 questions deep, 2-3 choices each)
-- [ ] **6.6 Answer recording** — All answers saved to Sheets for DM review
-- [ ] **6.7 Mission completion** — Player sees a summary; DM reviews and updates stats manually
+**Design decisions locked in:**
+- 2–4 questions per mission, 2–3 options each
+- Each option has a hidden weight (a/b/c) pointing toward an outcome bucket
+- At submit, majority weight determines the outcome — auto-computed, no DM resolution per player
+- 2–3 outcomes written once per mission by DM (narrative + image + stat change string)
+- Player experiences reactive image + one-line flavor text after each tap (illusion of branching)
+- Answer locking: each question locks on tap, no going back
+- DM can override the computed bucket before flipping resolved = yes
+
+**Sheets — 3 new tabs:**
+- [ ] **6.1 `Missions` tab** — mission_id, title, description, image_url, visible, cycle_id. Outcome columns: outcome_a_label, outcome_a_narrative, outcome_a_image, outcome_a_changes (plain text e.g. `followers:+100, bank:-500, reputation:streetview:positive`). Same for b and c.
+- [ ] **6.2 `MissionQuestions` tab** — mission_id, question_num, question_text, option_id, option_text, option_image (blank = keep current image), option_flavor (one-line reaction, blank = none), option_weight (a/b/c — hidden from player)
+- [ ] **6.3 `MissionSubmissions` tab** — submission_id, username, hero_name, mission_id, q1–q4 answers, outcome_bucket (auto-computed), dm_override, resolved (yes/no), cycle_id, timestamp
+
+**Backend — new API actions:**
+- [ ] **6.4 `getMissions`** — returns all visible missions from Missions tab. Frontend checks Submissions tab to show correct state per player (available / submitted / resolved).
+- [ ] **6.5 `getMissionQuestions`** — returns questions + options for a mission_id (without option_weight — never sent to client)
+- [ ] **6.6 `submitMission`** — records all answers, pulls player's skill values at submit time, computes outcome_bucket from majority weight, writes to MissionSubmissions
+
+**Frontend — mission UI:**
+- [ ] **6.7 Mission cards in myHERO feed** — three states: Available ("Begin"), Submitted ("Awaiting Resolution — C-1.xx"), Resolved ("Read Outcome")
+- [ ] **6.8 Mission question screen** — full-screen overlay. Shows current image (mission default until an option_image overrides it). Question text + options as tappable cards. Each tap: image swaps, flavor text appears briefly, auto-advances to next question.
+- [ ] **6.9 Submit screen** — confirmation before final submit. Cannot go back.
+- [ ] **6.10 Outcome screen** — unlocks when resolved = yes. Shows outcome_narrative + outcome_image. Stat changes shown as plain text for now (e.g. "+100 Followers"). Full stat application handled by DM manually until admin portal is built.
+
+**DM workflow per cycle (no per-player authoring required):**
+- Open MissionSubmissions → see each player's auto-computed outcome bucket
+- Override any bucket that feels narratively wrong (dm_override column)
+- Flip resolved = yes
+- Read outcome_changes string → manually apply to Players + Reputation tabs
+- (Admin portal will automate the apply step — Phase 3.7)
 
 ### Phase 7: DM Content — NOT STARTED
 > DM needs to populate the world with actual content.
