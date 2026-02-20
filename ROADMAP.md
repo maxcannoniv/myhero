@@ -45,16 +45,34 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [ ] **2.10 Save-as-note from messages** — Players can save NPC messages as notes to their notebook
 
 ### Phase 3: Admin Dashboard
-> DM tools to manage the game world behind the scenes.
+> DM tools to manage the game world behind the scenes. Ordered by priority — see Game Manager Reference in CLAUDE.md for the full task list and reasoning.
 
-- [ ] **3.1 Admin login** — Separate admin login (or admin flag on account) to access DM tools
-- [ ] **3.2 Admin dashboard shell** — Admin-only page with tools for managing the game
-- [ ] **3.3 NPC management** — Create, edit, and delete NPC characters from the admin dashboard
-- [ ] **3.4 Faction management** — Create and edit factions, set power multipliers
-- [ ] **3.5 Character roster view** — See all characters (player + NPC) in one place, edit stats
-- [ ] **3.6 Feed content posting** — Write Streetview and Daily Dollar posts from admin dashboard (instead of editing Sheets directly)
-- [ ] **3.7 Mission management** — Create and edit missions from admin dashboard
-- [ ] **3.8 Stat updates** — Manually adjust any player's skills, bank, followers, authority from admin
+- [ ] **3.1 Admin login** — Separate admin login (or admin flag on account) to access DM tools. Simple: hardcoded admin username/password in environment variable, no need for a full user system.
+- [ ] **3.2 Admin dashboard shell** — Admin-only page. Sidebar nav with sections matching the task list below.
+
+**Cycle (do this every resolution window):**
+- [ ] **3.3 Cycle advancement tool** — Button that reads current cycle, increments it by 1, writes new `cycle_start` timestamp to Settings tab automatically. Shows current cycle status at a glance.
+- [ ] **3.4 Mission answer reviewer** — Read player mission submissions, show them grouped by mission and player for DM review. (Depends on Phase 6.)
+
+**Messaging & Content (most frequent tasks):**
+- [ ] **3.5 NPC message composer** — Form: pick sender (NPC), pick recipient (player), write body. Writes correctly to Messages tab with proper column order and current cycle_id. Highest priority.
+- [ ] **3.6 Feed post composer** — Form: pick feed, pick posted_by character, write title + body, optional image URL, optional cutout URL. Auto-fills timestamp and cycle_id. Publishes or saves as draft (visible = no). `[Name]` syntax works as normal.
+
+**Player management (post-cycle resolution):**
+- [ ] **3.7 Stat editor** — Per-player form to update all 6 skills and all 4 aggregate scores. Prevents column mistakes.
+- [ ] **3.8 Reputation editor** — Grid or dropdown table: player rows × faction columns. Edit any standing (hostile/negative/neutral/positive/ally) in one view.
+
+**Characters & Factions:**
+- [ ] **3.9 Character creator/editor** — Form to add or edit NPC characters (name, class, bio, faction, faction_role, profile_visible). Reveal hidden NPCs with a toggle.
+- [ ] **3.10 Faction creator/editor** — Form to add or edit factions (name, description, power_multiplier, leader, members_public). Auto-runs reputation fill for all existing players when a new faction is created.
+- [ ] **3.11 Character roster view** — Table of all characters (player + NPC) with inline editing for bio, faction_role, profile_visible.
+
+**Inventory & Notes:**
+- [ ] **3.12 Inventory/note giver** — Form: pick player, give item (name + description) or note (name + content: title, body_text, image_url). Handles both Inventory tab and NoteContent tab in one operation.
+
+**Utility:**
+- [ ] **3.13 Password reset** — Find a player, generate a new hash, update Players tab.
+- [ ] **3.14 Post visibility toggle** — List all feed posts with a visible/hidden toggle per post. Lets DM draft posts in Sheets and publish from the admin panel.
 
 ### Phase 3.5: Migrate Backend to Netlify Functions — COMPLETE
 > Eliminate manual Apps Script redeployment. Code auto-deploys with git push.

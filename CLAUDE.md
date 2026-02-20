@@ -164,10 +164,205 @@ Players don't know which characters are NPCs and which are real players. All cha
 - **New character added** → no action needed. Reputation is player×faction only; NPC characters don't get reputation rows.
 **Tab: Inventory** — Per-player items and notes. Columns: username, item_name, type (item/note), content_id (for notes), description
 **Tab: NoteContent** — Secret content for notes. Columns: content_id, title, body_text, image_url. Only loaded when a player with the note clicks it.
-**Tab: Feeds** — All feed posts (all feeds in one tab). Columns: feed, posted_by, posted_by_type (character/faction/anonymous), title, image_url, body, timestamp, visible (yes/no), cutout_url (optional — character cutout layered over image_url in Bliink posts)
-**Tab: Messages** — All messages. Columns: from_character, to_character, body, timestamp, read (yes/no)
+**Tab: Feeds** — All feed posts (all feeds in one tab). Columns: feed, posted_by, posted_by_type (character/faction/anonymous), title, image_url, body, timestamp, visible (yes/no), cutout_url (optional — character cutout layered over image_url in Bliink posts), cycle_id (format: `1.00.00.0` — cycle number + days/hours/10-min-block since cycle start)
+**Tab: Messages** — All messages. Columns: from_character, to_character, body, timestamp, read (yes/no), cycle_id
+**Tab: Settings** — Game-wide configuration. Columns: key, value. Current rows: `current_cycle` (integer), `cycle_start` (ISO timestamp). DM edits these to advance the cycle.
 **Tab: Contacts** — Player contact lists. Columns: hero_name, contact_name
 **Tab: Missions** — Empty, for future use
+
+## Game Manager Reference
+
+Everything the GM needs to do to run the game. This list drives the admin portal build. Items marked **[AUTOMATABLE]** are good candidates for the admin dashboard. Items marked **[MANUAL]** will likely stay as direct Sheets edits for now.
+
+---
+
+### Cycle Management
+
+**Advancing a Cycle** — do this when player actions have been reviewed and outcomes decided.
+1. Open the `Settings` tab in Sheets
+2. Increment `current_cycle` by 1 (e.g., 1 → 2)
+3. Update `cycle_start` to the current ISO timestamp — open browser console and type `new Date().toISOString()`, paste the result into the cell
+4. Write a Cycle Summary post (see Content Creation below)
+> **[AUTOMATABLE]** — One button in the admin portal should do steps 1–3 automatically.
+
+**Reviewing a Cycle** — before closing, review what happened:
+- Read the Missions tab to see all player answers submitted since last cycle
+- Check the Messages tab for any player-to-NPC conversations that need responses
+- Check the Bliink feed for player posts
+- Decide stat/reputation consequences and apply them (see Stat Management and Reputation Management)
+
+---
+
+### Content Creation
+
+All feed posts are written directly into the `Feeds` tab in Sheets. Column order matters — always fill: `feed`, `posted_by`, `posted_by_type`, `title`, `image_url`, `body`, `timestamp`, `visible`, `cutout_url`, `cycle_id`.
+
+- **`visible`** — set to `yes` to publish immediately, `no` to draft/hide
+- **`timestamp`** — use format `YYYY-MM-DD HH:MM` (e.g. `2026-02-20 14:30`)
+- **`cycle_id`** — use current cycle format, e.g. `1.00.00.0`. Posts created by players are stamped automatically; DM-written posts in Sheets need this filled in manually.
+- **`[Name]` syntax** — write `[Mongrel]` anywhere in `body` and it renders as a clickable character link in all feeds
+
+| Feed | Sheet `feed` value | Style | Notes |
+|------|--------------------|-------|-------|
+| myHERO | `myhero` | Job board card | Hero jobs, missions, announcements |
+| Bliink | `bliink` | Instagram | Needs `image_url`. Optional `cutout_url` for character compositing. |
+| The Times Today | `todaystidbit` | Broadsheet newspaper | City-wide updates. Use for Cycle Summaries. |
+| Daily Dollar | `dailydollar` | WSJ newspaper | Financial/economic city news |
+| Streetview | `streetview` | Noir blog | Bloodhound's anonymous investigator posts |
+
+> **[AUTOMATABLE]** — A post composer form in the admin portal should write the row with correct column order, auto-fill timestamp and cycle_id, and handle the `[Name]` syntax without needing to remember columns.
+
+---
+
+### NPC Messaging
+
+To send a message as an NPC to a player:
+1. Open the `Messages` tab in Sheets
+2. Add a new row: `from_character` = NPC name, `to_character` = player's hero_name, `body` = message text, `timestamp` = `YYYY-MM-DD HH:MM`, `read` = `no`, `cycle_id` = current cycle_id
+3. The player will see this in their Messages inbox with an unread badge
+
+> **[AUTOMATABLE]** — Highest-priority admin feature. Writing rows by hand is error-prone and the column order is fragile.
+
+---
+
+### Character Management
+
+**Add a new NPC:**
+1. Open the `Characters` tab in Sheets
+2. Add a row: `character_name`, `type` = `npc`, `username` = blank, `class`, `bio`, `faction`, `faction_role` (short description, e.g. "Private Eye"), `profile_visible` = `yes` or `no`, `asset_slug` = blank until assets are added
+
+**Edit an NPC:**
+- Edit bio, faction_role, or other fields directly in the Characters tab
+- Change `profile_visible` from `no` to `yes` to reveal a hidden NPC to players
+
+**Add assets for a character:**
+1. Drop the image into `_drop/characters/` (profile headshot) or `_drop/cutouts/` (transparent PNG)
+2. Run `node process-assets.js`
+3. Run `git push` to deploy
+
+> **[AUTOMATABLE]** — NPC creation and editing via a form. Asset upload via drag-and-drop (harder, lower priority).
+
+---
+
+### Faction Management
+
+**Add a new faction:**
+1. Open the `Factions` tab in Sheets
+2. Add a row: `faction_name`, `description`, `power_multiplier` (number — affects Clout calculations), `leader` (character name), `members_public` = `yes` or `no`, `asset_slug` = blank until banner added
+3. **Immediately after:** run `node setup-reputation.js` — this creates neutral reputation rows for every existing player against the new faction. If you skip this, existing players will have no reputation row for that faction.
+
+**Edit a faction:**
+- Edit any field directly in the Factions tab
+- Changing `members_public` to `yes` will make the member list visible in the faction popup
+
+> **[AUTOMATABLE]** — Faction form + auto-run reputation fill on creation.
+
+---
+
+### Reputation Management
+
+Reputation is stored in the `Reputation` tab. One row per player per faction. Values: `hostile`, `negative`, `neutral`, `positive`, `ally`.
+
+**Adjust a player's standing with a faction:**
+1. Open the `Reputation` tab
+2. Find the row where `hero_name` = player and `faction_name` = faction
+3. Change the `reputation` value
+
+Do this after cycle resolution when player actions have earned or lost favor.
+
+> **[AUTOMATABLE]** — A simple grid or dropdown editor in the admin portal would be much easier than scrolling a Sheets tab.
+
+---
+
+### Stat Management
+
+Player stats live in the `Players` tab. Update these after cycle resolution.
+
+**Skills** (edit directly in Players tab — columns `might`, `agility`, `charm`, `intuition`, `commerce`, `intelligence`):
+- Scale: 1–10. 3 = average person. 20 starting points.
+
+**Aggregate scores** (edit directly in Players tab):
+- `followers` — number (e.g. 500)
+- `bank` — number in dollars (e.g. 4500)
+- `positional_authority` — letter tier: F, E, D, C, B, A, S, SS
+- `clout` — derived from reputation × faction power multiplier. Currently manual. Formula TBD.
+
+> **[AUTOMATABLE]** — A stat editor per player would prevent accidental column mismatches and make cycle resolution faster.
+
+---
+
+### Inventory Management
+
+*(UI not yet built, but Sheets structure exists)*
+
+**Give a player an item:**
+1. Open the `Inventory` tab
+2. Add a row: `username` = player username, `item_name` = name, `type` = `item`, `content_id` = blank, `description` = short description
+
+**Give a player a note (secret content):**
+1. First create the note content: open `NoteContent` tab → add row with `content_id` (unique, hard-to-guess string — e.g. `sv-clue-001`), `title`, `body_text`, `image_url` (optional)
+2. Then add to Inventory tab: `username`, `item_name`, `type` = `note`, `content_id` = the ID you just created, `description`
+
+> **[AUTOMATABLE]** — Note creation is especially error-prone (two tabs, linked by ID). Admin portal should handle both steps together.
+
+---
+
+### Asset Management
+
+**Adding new images (characters, factions, places):**
+1. Name the file naturally (spaces and caps are fine): e.g. `Head Honcho.png`
+2. Drop into the correct `_drop/` subfolder:
+   - `_drop/characters/` → character profile headshots
+   - `_drop/cutouts/` → transparent PNGs for Bliink compositing
+   - `_drop/factions/` → faction banner images
+   - `_drop/places/` → background scenes for Bliink composer
+3. Run `node process-assets.js` — slugifies, moves to `assets/`, updates Sheets and dashboard.js
+4. Run `git push` to deploy
+5. Optionally run `node sync-assets.js` to verify
+
+> **[MANUAL for now]** — Asset processing requires local terminal access and a git push. Low priority to automate.
+
+---
+
+### Mission Management *(not yet built)*
+
+Once missions are built, the GM will need to:
+- **Create missions** — write branching questions and answer choices
+- **Review answers** — read player submissions from the Missions tab
+- **Resolve outcomes** — decide stat/reputation consequences and apply them manually
+
+> **[AUTOMATABLE]** — Mission creator and answer reviewer are high-priority admin portal features once missions are built.
+
+---
+
+### Player Support
+
+**Reset a player's password** — no automated flow exists yet:
+1. Generate a SHA-256 hash of the new password (use a browser-based tool or the signup page's hashing logic)
+2. Open the `Players` tab → find the player row → update `password_hash`
+
+> **[AUTOMATABLE]** — Simple admin action.
+
+---
+
+### Summary: Admin Portal Priority Order
+
+Based on frequency of use and error risk:
+
+| Priority | Task | Why |
+|----------|------|-----|
+| 1 | **NPC messaging** | Done every cycle, column order error-prone |
+| 2 | **Feed post composer** | Done every cycle, tedious in Sheets |
+| 3 | **Cycle advancement** | Requires computing ISO timestamp manually |
+| 4 | **Stat editor** | Done every cycle, risk of column mistakes |
+| 5 | **Reputation editor** | Done every cycle, slow to find rows in Sheets |
+| 6 | **Character creator/editor** | Less frequent but fiddly |
+| 7 | **Inventory/note giver** | Two-tab operation, easy to get wrong |
+| 8 | **Mission reviewer** | Not built yet |
+| 9 | **Faction creator/editor** | Infrequent |
+| 10 | **Password reset** | Rare |
+
+---
 
 ## Current State (as of 2026-02-19)
 
