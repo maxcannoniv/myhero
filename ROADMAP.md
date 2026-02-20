@@ -121,7 +121,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [x] **5.5 Character profile popups** — Clickable names in feeds open profile with "Add to Contacts" / "Send Message"
 - [x] **5.6 Auto-add contacts** — Sending a message auto-adds the recipient to contacts
 
-### Phase 6: Missions — NOT STARTED — BUILD NEXT
+### Phase 6: Missions — COMPLETE
 > Illusion-of-choice mission system. Pre-written outcomes, questions that meander toward them, reactive images per answer. No true branching — no combinatorial explosion.
 
 **Design decisions locked in:**
@@ -134,20 +134,20 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - DM can override the computed bucket before flipping resolved = yes
 
 **Sheets — 3 new tabs:**
-- [ ] **6.1 `Missions` tab** — mission_id, title, description, image_url, visible, cycle_id. Outcome columns: outcome_a_label, outcome_a_narrative, outcome_a_image, outcome_a_changes (plain text e.g. `followers:+100, bank:-500, reputation:streetview:positive`). Same for b and c.
-- [ ] **6.2 `MissionQuestions` tab** — mission_id, question_num, question_text, option_id, option_text, option_image (blank = keep current image), option_flavor (one-line reaction, blank = none), option_weight (a/b/c — hidden from player)
-- [ ] **6.3 `MissionSubmissions` tab** — submission_id, username, hero_name, mission_id, q1–q4 answers, outcome_bucket (auto-computed), dm_override, resolved (yes/no), cycle_id, timestamp
+- [x] **6.1 `Missions` tab** — mission_id, title, description, image_url, visible, cycle_id. Outcome columns: outcome_a_label, outcome_a_narrative, outcome_a_image, outcome_a_changes (plain text e.g. `followers:+100, bank:-500, reputation:streetview:positive`). Same for b and c.
+- [x] **6.2 `MissionQuestions` tab** — mission_id, question_num, question_text, option_id, option_text, option_image (blank = keep current image), option_flavor (one-line reaction, blank = none), option_weight (a/b/c — hidden from player)
+- [x] **6.3 `MissionSubmissions` tab** — submission_id, username, hero_name, mission_id, q1–q4 answers, outcome_bucket (auto-computed), dm_override, resolved (yes/no), cycle_id, timestamp
 
 **Backend — new API actions:**
-- [ ] **6.4 `getMissions`** — returns all visible missions from Missions tab. Frontend checks Submissions tab to show correct state per player (available / submitted / resolved).
-- [ ] **6.5 `getMissionQuestions`** — returns questions + options for a mission_id (without option_weight — never sent to client)
-- [ ] **6.6 `submitMission`** — records all answers, pulls player's skill values at submit time, computes outcome_bucket from majority weight, writes to MissionSubmissions
+- [x] **6.4 `getMissions`** — returns all visible missions from Missions tab. Frontend checks Submissions tab to show correct state per player (available / submitted / resolved).
+- [x] **6.5 `getMissionQuestions`** — returns questions + options for a mission_id (without option_weight — never sent to client)
+- [x] **6.6 `submitMission`** — records all answers, computes outcome_bucket from majority weight, writes to MissionSubmissions
 
 **Frontend — mission UI:**
-- [ ] **6.7 Mission cards in myHERO feed** — three states: Available ("Begin"), Submitted ("Awaiting Resolution — C-1.xx"), Resolved ("Read Outcome")
-- [ ] **6.8 Mission question screen** — full-screen overlay. Shows current image (mission default until an option_image overrides it). Question text + options as tappable cards. Each tap: image swaps, flavor text appears briefly, auto-advances to next question.
-- [ ] **6.9 Submit screen** — confirmation before final submit. Cannot go back.
-- [ ] **6.10 Outcome screen** — unlocks when resolved = yes. Shows outcome_narrative + outcome_image. Stat changes shown as plain text for now (e.g. "+100 Followers"). Full stat application handled by DM manually until admin portal is built.
+- [x] **6.7 Mission cards in myHERO feed** — three states: Available ("Begin"), Submitted ("Awaiting Resolution — C-1.xx"), Resolved ("Read Outcome")
+- [x] **6.8 Mission question screen** — full-screen overlay. Shows current image (mission default until an option_image overrides it). Question text + options as tappable cards. Each tap: image swaps, flavor text appears briefly, auto-advances to next question.
+- [x] **6.9 Submit screen** — confirmation before final submit. Cannot go back.
+- [x] **6.10 Outcome screen** — unlocks when resolved = yes. Shows outcome_narrative + outcome_image. Stat changes shown as plain text. Full stat application handled by DM manually until admin portal is built.
 
 **DM workflow per cycle (no per-player authoring required):**
 - Open MissionSubmissions → see each player's auto-computed outcome bucket

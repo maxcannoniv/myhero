@@ -324,14 +324,44 @@ Player stats live in the `Players` tab. Update these after cycle resolution.
 
 ---
 
-### Mission Management *(not yet built)*
+### Mission Management
 
-Once missions are built, the GM will need to:
-- **Create missions** — write branching questions and answer choices
-- **Review answers** — read player submissions from the Missions tab
-- **Resolve outcomes** — decide stat/reputation consequences and apply them manually
+Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubmissions`.
 
-> **[AUTOMATABLE]** — Mission creator and answer reviewer are high-priority admin portal features once missions are built.
+**Write a new mission:**
+1. Open the `Missions` tab → add a row:
+   - `mission_id` — unique string, e.g. `m002`
+   - `title`, `description`, `image_url` — shown on the mission card
+   - `visible` — `yes` to publish, `no` to hide/draft
+   - `cycle_id` — use current cycle format, e.g. `1.00.00.0`
+   - Outcome columns (fill at least a and b, c is optional):
+     - `outcome_a_label` — short label shown at top of outcome screen (e.g. "Played It Straight")
+     - `outcome_a_narrative` — the story text players read when resolved
+     - `outcome_a_image` — optional image URL for the outcome screen
+     - `outcome_a_changes` — plain text stat changes (e.g. `bank:+500, reputation:mongrels-towing:positive`). Applied manually by DM.
+2. Open the `MissionQuestions` tab → add rows (one row per answer option):
+   - `mission_id` — must match the Missions tab
+   - `question_num` — number the questions starting at 1. All options for the same question share the same number.
+   - `question_text` — the question shown to the player
+   - `option_id` — unique per option, e.g. `1a`, `1b`, `2a`, `2b`
+   - `option_text` — the tappable button text the player sees
+   - `option_image` — optional. If set, swaps the background image when this option is tapped
+   - `option_flavor` — optional. One-line text shown briefly after tapping (e.g. "You've got standards.")
+   - `option_weight` — `a`, `b`, or `c`. Hidden from players. The outcome with the most votes wins.
+
+**Review a cycle's submissions:**
+1. Open `MissionSubmissions` tab
+2. Each row is one player's answers. Columns `q1_answer`–`q4_answer` hold the option_ids they chose.
+3. `outcome_bucket` is auto-computed (a/b/c based on majority weight). This is what the player will see.
+4. To override: write `a`, `b`, or `c` in the `dm_override` column. The frontend uses `dm_override` over `outcome_bucket` if it's set.
+5. When ready for the player to see their outcome: change `resolved` from `no` to `yes`.
+
+**Apply stat changes manually:**
+- Read the `outcome_changes` string from the Missions tab for the player's bucket
+- Update `Players` tab (bank, followers, skills, etc.) and `Reputation` tab as needed
+- (Admin portal will automate this — Phase 3.7)
+
+> **[AUTOMATABLE]** — Mission creator and answer reviewer are high-priority admin portal features (Phase 3.4).
 
 ---
 
@@ -364,7 +394,7 @@ Based on frequency of use and error risk:
 
 ---
 
-## Current State (as of 2026-02-19)
+## Current State (as of 2026-02-20)
 
 **What's built and working:**
 - Full login/signup flow with class selection and skill allocation
@@ -382,12 +412,17 @@ Based on frequency of use and error risk:
 - Asset system — organized under `assets/characters/{slug}/`, `assets/factions/{slug}/`, `assets/places/{slug}/`. Use `process-assets.js` drop folder workflow to add new images. Run `sync-assets.js` to verify.
   - Characters with assets: bloodhound, mongrel, dozer, aurora-edge, smiles (profile + cutout)
   - Places with assets: mongrels-towing-yard (background)
+- **Mission system** — Full illusion-of-choice mission flow. DM writes missions in Sheets, players tap through questions in a full-screen overlay, outcome bucket auto-computed, DM reviews and flips resolved = yes. Three Sheets tabs: Missions, MissionQuestions, MissionSubmissions.
+  - Mission cards in myHERO feed with 3 states: Available / Awaiting Resolution / Read Outcome
+  - Full-screen question overlay: image swaps, flavor text, answer locking, auto-advance
+  - Confirm screen before submit; outcome screen with narrative + stat change string after DM resolves
+  - `option_weight` never sent to client — players cannot see how choices are weighted
 - Backend fully on Netlify Functions (auto-deploys with git push)
 - Live at https://myherogame.netlify.app
 
 **What's NOT built yet (next steps toward MVP):**
 1. **Feed content** — Only sample/test posts exist. DM needs to write real Streetview articles, Daily Dollar news, myHERO job listings, NPC Bliink posts, and The Times Today articles
-2. **Missions** — The choose-your-own-adventure branching system (core gameplay). Data structure, UI, branching logic, answer recording
-3. **Admin dashboard** — DM tools to manage content, review posts, update stats, run the game without editing Sheets directly
+2. **Real missions** — The Sheets structure and UI are live, but only a sample mission exists. DM needs to write 3 real missions with real questions, images, and outcome narratives
+3. **Admin dashboard** — DM tools to manage content, review missions, update stats, and run the game without editing Sheets directly. This is now the highest remaining build priority.
 
 See ROADMAP.md for full build plan.
