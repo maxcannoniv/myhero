@@ -679,6 +679,7 @@ var BLIINK_BACKGROUNDS = [
   { label: 'Selfie',       url: 'https://placehold.co/600x600/1a1a2e/e94560?text=SELFIE' },
   { label: 'Meetup',       url: 'https://placehold.co/600x600/1a2e2e/4fc3f7?text=MEETUP' },
   { label: 'Victory',      url: 'https://placehold.co/600x600/2e1a1a/f5c518?text=VICTORY' }
+  { label: 'Mongrel's Towing Yard', url: '/assets/places/mongrels-towing-yard/background.png' },
 ];
 
 // Character cutouts for layering over backgrounds.
