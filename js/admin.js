@@ -778,6 +778,7 @@ function buildCharacterForm(c) {
     formFieldInline('type', 'Type', c.type, 'select', 'npc,player') +
     formFieldInline('class', 'Class', c.class, 'select', 'Hero,Celebrity,Politician,Sleuth,Tycoon,Visionary,Mogul,Mercenary,Champion,Philanthropist') +
     '</div>' +
+    (c.type === 'player' && c.username ? '<div class="form-row"><label>Linked Account</label><input class="form-input" value="' + escAttr(c.username) + '" disabled style="opacity:0.6;cursor:default;"></div>' : '') +
     formField('faction', 'Faction', c.faction, 'text') +
     formField('faction_role', 'Faction Role', c.faction_role, 'text') +
     formField('bio', 'Bio', c.bio, 'textarea') +

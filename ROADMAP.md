@@ -36,7 +36,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 - [x] **2.1 Class starting defaults** — Bank: $3k base + $1k/commerce over 3. Followers: class-based (100-1000). Authority: letter tier per class.
 - [x] **2.2 Authority scale** — F (nobody) → E (low recognition) → D (minor position) → C (notable) → B (powerful) → A (elite) → S (CEO/gov) → SS (president)
 - [x] **2.3 Factions tab in Sheets** — 5 factions created (Streetview, Mongrel's Towing, myHERO, Wednesday Wealth, Cornerstone Holdings)
-- [x] **2.4 Characters tab in Sheets** — NPCs created (Bloodhound, Mongrel, Dozer, Head Honcho). Players added at signup.
+- [x] **2.4 Characters tab in Sheets** — NPCs created (Bloodhound, Mongrel, Dozer, Head Honcho). Player characters auto-created on signup (`profile_visible: no`); DM activates them via admin portal. `type` and `username` fields are stripped from all player-facing API responses — players cannot tell NPCs from real players.
 - [ ] **2.5 Clout calculation** — Define formula: faction standing × faction power multiplier, summed across factions
 - [x] **2.6 Update signup flow** — New accounts get starting bank/followers/authority based on class defaults
 - [x] **2.7 Rename net_worth → bank** — Updated across all files
@@ -195,7 +195,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 | Aggregates | 4 derived scores (not skills) | Followers, Bank, Authority, Clout — displayed prominently on profile |
 | Clout | Weighted faction influence | Faction standing × faction power multiplier, summed across factions |
 | Dashboard | Phone-style terminal | App icon grid, status bar, each feed is an "app" — myHERO is an in-world app like Upwork |
-| Characters | Players + NPCs in one table | All characters look identical in feeds/messages; players can't tell who's real |
+| Characters | Players + NPCs in one table | All characters look identical in feeds/messages; players can't tell who's real. Player characters auto-created on signup. `type`/`username` never sent to client. |
 | Admin | DM dashboard | Separate admin interface for managing NPCs, factions, content, stats |
 | Player mystery | Players don't know who is NPC vs. real player | All characters presented the same way in feeds and messages |
 | "Marketing" | In-universe landing page + class showcase | Players get immersed before creating an account |

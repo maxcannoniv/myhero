@@ -183,6 +183,9 @@ Players don't know which characters are NPCs and which are real players. All cha
 - **New player registers** → handled automatically by `handleRegister` in `api.js`. Neutral rows are added for all factions at signup. No manual action needed.
 - **New faction added** → Use the Factions section in the admin portal. Reputation rows are created automatically for all existing players when the faction is saved. If adding directly to Sheets instead, run `node setup-reputation.js` afterward (additive only, never overwrites).
 - **New character added** → no action needed. Reputation is player×faction only; NPC characters don't get reputation rows.
+
+**Character auto-creation on registration:**
+When a player registers, a Characters tab row is automatically created for their hero (`type: player`, `profile_visible: no`). The DM activates the character by flipping `profile_visible` to `yes` in the admin portal Characters section when ready. Until then, the character exists in Sheets but is invisible to all players. The `type` and `username` fields are never sent to the player-facing API — players cannot tell which characters are real people vs. NPCs.
 **Tab: Inventory** — Per-player items and notes. Columns: username, item_name, type (item/note), content_id (for notes), description
 **Tab: NoteContent** — Secret content for notes. Columns: content_id, title, body_text, image_url. Only loaded when a player with the note clicks it.
 **Tab: Feeds** — All feed posts (all feeds in one tab). Columns: feed, posted_by, posted_by_type (character/faction/anonymous), title, image_url, body, timestamp, visible (yes/no), cutout_url (optional — character cutout layered over image_url in Bliink posts), cycle_id (format: `1.00.00.0` — cycle number + days/hours/10-min-block since cycle start)
@@ -260,9 +263,12 @@ Feed posts can be created in two ways:
 
 ### Character Management
 
+**When a player registers**, a Characters row is automatically created for them (`type: player`, `profile_visible: no`). You'll see their hero name appear in the Characters section of the admin portal, labeled as `player` type. Fill in their bio, faction, and image when ready, then flip `profile_visible` to `yes` to make them visible in-world.
+
 **Preferred: Admin portal Characters section** (`/admin.html` → Characters)
+- Player characters appear automatically after signup — labeled `player` with their linked username shown (read-only)
 - Click any character card to open its edit form (name, class, bio, faction, faction_role, profile_visible, profile_url, cutout_url)
-- Click "Add New Character" to create an NPC
+- Click "Add New Character" to create an NPC manually
 - Toggle `profile_visible` to reveal or hide a character from players
 - Paste a direct image URL into `profile_url` or `cutout_url` to set images without local file management
 
@@ -465,7 +471,7 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
   - **Cycle** — one-click cycle advancement (increments counter + writes timestamp to Sheets)
   - **Players** — editable stat table for all players (skills + aggregates)
   - **Reputation** — player × faction grid with dropdown per cell; auto-saves on change
-  - **Characters** — roster + edit form; toggle profile_visible; set profile_url/cutout_url
+  - **Characters** — roster + edit form; player characters auto-appear here on signup (profile_visible = no); toggle to activate; shows linked username for player-type characters
   - **Factions** — list + edit form; auto-creates reputation rows on new faction save; set banner_url
   - **Places** — Bliink background list; add/edit slug + label + background_url
 - Backend fully on Netlify Functions (auto-deploys with git push)

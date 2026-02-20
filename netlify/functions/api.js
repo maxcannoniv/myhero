@@ -208,6 +208,9 @@ async function handleRegister(data) {
   // Auto-create neutral reputation rows for this new player against all factions
   await addReputationRowsForPlayer(sheets, data.heroName);
 
+  // Auto-create a Characters tab entry (profile_visible = no until DM activates)
+  await addCharacterForNewPlayer(sheets, data.heroName, data.username, data.heroClass);
+
   // Build hero object to return
   var hero = {};
   for (var k = 0; k < headers.length; k++) {
@@ -728,7 +731,12 @@ async function handleGetCharacter(data) {
     return { success: false, error: 'Character not found.' };
   }
 
-  return { success: true, character: character };
+  // Strip internal fields — players must not be able to tell player from NPC
+  var safe = Object.assign({}, character);
+  delete safe.type;
+  delete safe.username;
+
+  return { success: true, character: safe };
 }
 
 // -----------------------------------------------
@@ -754,6 +762,43 @@ function colNumToLetter(n) {
     n = Math.floor(n / 26);
   }
   return s;
+}
+
+// Create a Characters tab row for a newly registered player.
+// Sets profile_visible = no so the DM controls when the character appears in-world.
+// Reads actual tab headers so it works even if columns were added via admin portal.
+async function addCharacterForNewPlayer(sheets, heroName, username, heroClass) {
+  var rows = await readTab(sheets, 'Characters');
+  if (rows.length < 1) return; // tab missing, skip silently
+
+  var headers = rows[0];
+  var nameCol = headers.indexOf('character_name');
+
+  // Don't duplicate if somehow already exists
+  if (nameCol !== -1) {
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][nameCol] === heroName) return;
+    }
+  }
+
+  var charData = {
+    character_name: heroName,
+    type: 'player',
+    username: username,
+    class: heroClass,
+    profile_visible: 'no'
+  };
+
+  var newRow = headers.map(function(h) {
+    return charData[h] !== undefined ? charData[h] : '';
+  });
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Characters!A:A',
+    valueInputOption: 'RAW',
+    requestBody: { values: [newRow] }
+  });
 }
 
 // Add neutral reputation rows for ALL existing players against a newly created faction.
@@ -799,6 +844,15 @@ async function handleGetCharacters(data) {
   var rows = await readTab(sheets, 'Characters');
   var all = rowsToObjects(rows);
   var visible = all.filter(function(c) { return c.profile_visible === 'yes'; });
+
+  // Strip internal fields — players must not be able to tell player from NPC
+  visible = visible.map(function(c) {
+    var safe = Object.assign({}, c);
+    delete safe.type;
+    delete safe.username;
+    return safe;
+  });
+
   return { success: true, characters: visible };
 }
 
