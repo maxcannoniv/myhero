@@ -148,6 +148,21 @@ assets/
 - Bliink backgrounds load from the Places tab; cutouts load from characters with `cutout_url` set
 - Both systems fall back gracefully: if `profile_url` is blank, falls back to `asset_slug` path; if Places tab is empty, falls back to hardcoded backgrounds
 
+**IMAGE SIZE WARNING — read before adding any asset:**
+Raw image files from AI generators, design tools, or phone cameras are typically 2–5 MB each. Netlify serves them at full resolution — the browser downloads the whole file every time it loads that image in a feed or popup. At that size, loading multiple images simultaneously (e.g. opening Bliink, viewing several character popups, or loading the admin Assets page) can consume hundreds of MB of browser memory and crash the tab.
+
+**Target: under 200 KB per image before committing.** This is roughly 15–20× smaller than a raw file. Quality is barely affected at 80% compression.
+
+**How to compress (required before step 4):**
+1. Go to [squoosh.app](https://squoosh.app) — free, no install, runs in your browser
+2. Drag in your image
+3. On the right panel, change the format dropdown to **WebP** (or JPEG for photos)
+4. Drag the quality slider to **~80%** — watch the file size in the bottom bar drop
+5. Click the download arrow — save the compressed file
+6. Replace the original file in `assets/` with the compressed version before running `git push`
+
+Transparent PNGs (cutouts) should stay as PNG — WebP supports transparency too, so WebP is still a good choice for those.
+
 **Workflow for new assets (use this every time):**
 1. Name the file after the character/faction/place. Spaces and capitals are fine — the script handles the rest.
    - e.g. `Aurora Edge.png` → slug `aurora-edge`
@@ -161,8 +176,11 @@ assets/
    - Updates `asset_slug` in Characters or Factions tab in Sheets (creates column if missing)
    - Clears the `_drop/` folder
    - Prints a summary and warnings for any Sheets mismatches
-4. Git push → Netlify auto-deploys
-5. Optionally run `node sync-assets.js` to verify everything is wired up
+4. **Compress the output files** before pushing — see IMAGE SIZE WARNING above. Open the files now sitting in `assets/` in squoosh.app and replace them with compressed versions.
+5. Git push → Netlify auto-deploys
+6. Optionally run `node sync-assets.js` to verify everything is wired up
+
+**Existing assets that still need compression:** bloodhound, mongrel, dozer, aurora-edge, smiles (profiles + cutouts), mongrels-towing-yard (background). All are currently 2–3.4 MB. Use squoosh.app to bring each under 200 KB before the next major push.
 
 **Characters with assets (profile + cutout):** bloodhound, mongrel, dozer, aurora-edge, smiles
 **Places with assets:** mongrels-towing-yard
@@ -479,7 +497,7 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
   - **Characters** — roster + edit form; player characters auto-appear here on signup with green "PLAYER" badge and grouped separately from NPCs; toggle `profile_visible` to activate; "Sync Players" button retroactively creates Characters entries for any player who registered before that feature existed
   - **Factions** — list + edit form; auto-creates reputation rows on new faction save; set banner_url
   - **Places** — Bliink background list; add/edit slug + label + background_url
-  - **Assets** — read-only image gallery showing all images in the system (character profiles, cutouts, faction banners, place backgrounds) with thumbnails and one-click Copy URL buttons
+  - **Assets** — read-only reference list of all images in the system (character profiles, cutouts, faction banners, place backgrounds) with asset name, URL, and one-click Copy URL buttons. Thumbnails intentionally removed — loading full-resolution assets as thumbnails was crashing the admin tab (2–3 MB images × 10+ = hundreds of MB decoded in memory). See IMAGE SIZE WARNING in the Asset System section above.
 - Backend fully on Netlify Functions (auto-deploys with git push)
 - Live at https://myherogame.netlify.app
 
