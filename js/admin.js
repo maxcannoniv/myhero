@@ -1057,7 +1057,7 @@ function renderPlacesView(places) {
   places.forEach(function(p) {
     placesHtml +=
       '<div class="place-card" data-slug="' + escAttr(p.slug) + '">' +
-      (p.background_url ? '<img class="place-card-img" src="' + escAttr(p.background_url) + '" alt="">' : '<div class="place-card-img" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);">No Image</div>') +
+      (p.background_url ? '<img class="place-card-img" src="' + escAttr(p.background_url) + '" alt="" loading="lazy">' : '<div class="place-card-img" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);">No Image</div>') +
       '<div class="place-card-label">' + escHtml(p.label || '') + '</div>' +
       '<div class="place-card-slug">' + escHtml(p.slug || '') + '</div>' +
       '</div>';
@@ -1185,7 +1185,6 @@ async function loadAssets() {
     html += '<div class="asset-gallery">';
     assets.forEach(function(a) {
       html += '<div class="asset-card">' +
-        '<img class="asset-thumb" src="' + escAttr(a.url) + '" alt="" onerror="this.style.display=\'none\'">' +
         '<div class="asset-card-name">' + escHtml(a.name) + '</div>' +
         '<div class="asset-url-row">' +
         '<span class="asset-url-text" title="' + escAttr(a.url) + '">' + escHtml(a.url.length > 40 ? '...' + a.url.slice(-40) : a.url) + '</span>' +
@@ -1200,14 +1199,17 @@ async function loadAssets() {
   content.innerHTML =
     '<h1 class="section-title">Assets</h1>' +
     '<p class="section-subtitle">All images available for use in posts, characters, and factions. Click Copy to get the URL.</p>' +
+    '<div id="assetsContainer">' +
     buildAssetSection('Place Backgrounds', bgAssets) +
     buildAssetSection('Character Profiles', profileAssets) +
     buildAssetSection('Character Cutouts', cutoutAssets) +
     buildAssetSection('Faction Banners', bannerAssets) +
+    '</div>' +
     '<div id="copyToast" style="display:none;position:fixed;bottom:24px;right:24px;background:var(--accent-green);color:#000;padding:10px 18px;border-radius:6px;font-weight:700;font-size:0.85rem;z-index:999;">Copied!</div>';
 
-  // Copy URL buttons
-  content.addEventListener('click', function(e) {
+  // Copy URL buttons — listener on assetsContainer (recreated on each visit) rather than
+  // the persistent content div, so handlers don't stack up across navigations.
+  document.getElementById('assetsContainer').addEventListener('click', function(e) {
     if (e.target.classList.contains('copy-url-btn')) {
       var url = e.target.getAttribute('data-url');
       navigator.clipboard.writeText(url).then(function() {
