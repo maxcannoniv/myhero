@@ -690,9 +690,9 @@ async function handleSubmitMission(data) {
   var cycleInfo = await getCurrentCycle(sheets);
   var cycleId = computeCycleId(cycleInfo.cycle, cycleInfo.cycleStart);
 
-  // Pad answers to 4 slots (q1–q4 columns)
-  var answers = data.answers.slice(0, 4);
-  while (answers.length < 4) answers.push('');
+  // Pad answers to 5 slots (q1–q5 columns)
+  var answers = data.answers.slice(0, 5);
+  while (answers.length < 5) answers.push('');
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
@@ -704,7 +704,7 @@ async function handleSubmitMission(data) {
         data.username,
         data.heroName,
         data.missionId,
-        answers[0], answers[1], answers[2], answers[3],
+        answers[0], answers[1], answers[2], answers[3], answers[4],
         bucket,
         '',    // dm_override — DM fills this in Sheets if needed
         'no',  // resolved — DM changes to 'yes' after review
