@@ -494,7 +494,7 @@ function openCharacterPopup(characterName) {
       document.getElementById('charPopupBio').textContent = c.bio || '';
       // Show profile photo: prefer profile_url (imgbb), fall back to asset_slug path, else initial
       var avatarEl = document.getElementById('charPopupAvatar');
-      var profileImgSrc = c.profile_url || (c.asset_slug ? '/assets/characters/' + c.asset_slug + '/profile.png' : '');
+      var profileImgSrc = c.profile_url || (c.asset_slug ? '/assets/characters/' + c.asset_slug + '/profile.webp' : '');
       if (profileImgSrc) {
         avatarEl.innerHTML = '<img src="' + profileImgSrc + '" alt="' + c.character_name + '">';
       } else {
@@ -697,16 +697,16 @@ var BLIINK_BACKGROUNDS_FALLBACK = [
   { label: 'City Skyline', url: 'https://placehold.co/600x600/1a1a2e/f5c518?text=CITY+SKYLINE' },
   { label: 'Downtown',     url: 'https://placehold.co/600x600/16213e/4fc3f7?text=DOWNTOWN' },
   { label: 'The Docks',    url: 'https://placehold.co/600x600/0f3460/a0a0b0?text=THE+DOCKS' },
-  { label: "Mongrel's Towing Yard", url: '/assets/places/mongrels-towing-yard/background.png' },
+  { label: "Mongrel's Towing Yard", url: '/assets/places/mongrels-towing-yard/background.webp' },
 ];
 
 // Hardcoded fallback cutouts — shown only if no characters in Sheets have a cutout_url set.
 var BLIINK_CUTOUTS_FALLBACK = [
-  { label: 'Bloodhound',  url: '/assets/characters/bloodhound/cutout.png' },
-  { label: 'Mongrel',     url: '/assets/characters/mongrel/cutout.png' },
-  { label: 'Dozer',       url: '/assets/characters/dozer/cutout.png' },
-  { label: 'Aurora Edge', url: '/assets/characters/aurora-edge/cutout.png' },
-  { label: 'Smiles',      url: '/assets/characters/smiles/cutout.png' },
+  { label: 'Bloodhound',  url: '/assets/characters/bloodhound/cutout.webp' },
+  { label: 'Mongrel',     url: '/assets/characters/mongrel/cutout.webp' },
+  { label: 'Dozer',       url: '/assets/characters/dozer/cutout.webp' },
+  { label: 'Aurora Edge', url: '/assets/characters/aurora-edge/cutout.webp' },
+  { label: 'Smiles',      url: '/assets/characters/smiles/cutout.webp' },
 ];
 
 var selectedBgUrl = null;

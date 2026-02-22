@@ -1161,8 +1161,8 @@ async function loadAssets() {
   var cutoutAssets = [];
   characters.forEach(function(c) {
     var name = c.character_name || '(unnamed)';
-    var profileUrl = c.profile_url || (c.asset_slug ? '/assets/characters/' + c.asset_slug + '/profile.png' : '');
-    var cutoutUrl = c.cutout_url || (c.asset_slug ? '/assets/characters/' + c.asset_slug + '/cutout.png' : '');
+    var profileUrl = c.profile_url || (c.asset_slug ? '/assets/characters/' + c.asset_slug + '/profile.webp' : '');
+    var cutoutUrl = c.cutout_url || (c.asset_slug ? '/assets/characters/' + c.asset_slug + '/cutout.webp' : '');
     if (profileUrl) profileAssets.push({ name: name, url: profileUrl });
     if (cutoutUrl) cutoutAssets.push({ name: name + ' (cutout)', url: cutoutUrl });
   });
