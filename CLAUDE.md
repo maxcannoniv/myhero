@@ -110,7 +110,7 @@ Hero, Celebrity, Politician, Sleuth, Tycoon, Visionary, Mogul, Mercenary, Champi
 - **Profile** — Hero stats, inventory, bank
 
 ### Missions
-- Branching choose-your-own-adventure style (3 questions deep, 2-3 choices each, no going back)
+- Branching choose-your-own-adventure style (up to 5 questions, 2-3 choices each, no going back)
 - Answers recorded to Sheets for DM review
 - DM manually updates stats after review (automation later)
 - 3 initial missions, each player picks 1
@@ -212,7 +212,7 @@ When a player registers, a Characters tab row is automatically created for their
 **Tab: Contacts** — Player contact lists. Columns: hero_name, contact_name
 **Tab: Missions** — Mission cards shown in the myHERO feed. Columns: mission_id, title, description, image_url, visible, cycle_id, outcome_a_label, outcome_a_narrative, outcome_a_image, outcome_a_changes, outcome_b_*, outcome_c_*
 **Tab: MissionQuestions** — One row per answer option. Columns: mission_id, question_num, question_text, option_id, option_text, option_image, option_flavor, option_weight (a/b/c — hidden from players)
-**Tab: MissionSubmissions** — One row per player per mission. Columns: submission_id, username, hero_name, mission_id, q1_answer–q4_answer, outcome_bucket (auto-computed), dm_override, resolved (yes/no), cycle_id, timestamp
+**Tab: MissionSubmissions** — One row per player per mission. Columns: submission_id, username, hero_name, mission_id, q1_answer–q5_answer, outcome_bucket (auto-computed), dm_override, resolved (yes/no), cycle_id, timestamp
 
 ## Game Manager Reference
 
@@ -483,7 +483,7 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
   - Places with assets: mongrels-towing-yard (background)
 - **Mission system** — Full illusion-of-choice mission flow. DM writes missions in Sheets, players tap through questions in a full-screen overlay, outcome bucket auto-computed, DM reviews and resolves via admin portal. Three Sheets tabs: Missions, MissionQuestions, MissionSubmissions.
   - Mission cards in myHERO feed with 3 states: Available / Awaiting Resolution / Read Outcome
-  - Full-screen question overlay: image swaps, flavor text, answer locking, auto-advance
+  - Full-screen question overlay: image swaps, flavor text (stays visible until next question renders), answer locking, auto-advance. Supports up to 5 questions.
   - Confirm screen before submit; outcome screen with narrative + stat change string after DM resolves
   - `option_weight` never sent to client — players cannot see how choices are weighted
 - **Admin portal** — DM-only interface at `/admin.html`. Login-gated (ADMIN_PASSWORD env var). 11 sections:

@@ -12,6 +12,58 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 
 ---
 
+## Path to First Session
+
+The engine is complete. All feeds, missions, messaging, admin portal, and player flows work end-to-end. The blocker is content — the world is empty and no real missions exist yet.
+
+**Key insight:** Launching with empty feeds is worse than launching late. Players who log in and see placeholder content will disengage before the game even starts. Content creation is the critical path — code can catch up.
+
+**Priority order:**
+
+| # | Task | Type | Notes |
+|---|------|------|-------|
+| 1 | Compress all assets | Non-code | URGENT — all 11 images are 2–3.4 MB and will crash player browsers. Do this before anything else. |
+| 2 | Write 3 starter missions | Content | Mission system works but only sample data exists |
+| 3 | Write seed feed posts (all 5 feeds) | Content | World feels empty without this — do before inviting players |
+| 4 | Send NPC welcome messages | Content | Pre-load 1 message to each player's inbox so it isn't empty on first login |
+| 5 | Inventory + Notebook apps | Code | Needed before handing out secret intel or items (Phase 2.8–2.9) |
+| 6 | Dashboard optimization | Code | Needs scoping before any code is written — identify specific things that feel off |
+| 7 | Story/mission iteration | Content + code | Emerges from actual play — hard to optimize before you have real missions |
+| 8 | Stat automations | Code | Far away — manual DM workflow is workable for now |
+
+### Asset Compression — Do This First
+
+Every image in `assets/` must be under 200 KB before any player touches the game. Use [squoosh.app](https://squoosh.app): drag in the file, format = WebP, quality ~80%, download and replace the original.
+
+Files to compress (all currently 2–3.4 MB):
+- `assets/characters/bloodhound/profile.png` (2.1 MB) + `cutout.png` (3.1 MB)
+- `assets/characters/mongrel/profile.png` (2.0 MB) + `cutout.png` (2.8 MB)
+- `assets/characters/dozer/profile.png` (2.4 MB) + `cutout.png` (3.4 MB)
+- `assets/characters/aurora-edge/profile.png` (2.2 MB) + `cutout.png` (3.0 MB)
+- `assets/characters/smiles/profile.png` (2.3 MB) + `cutout.png` (2.9 MB)
+- `assets/places/mongrels-towing-yard/background.png` (3.1 MB)
+
+### Minimum Viable Content for Session 1
+
+| Feed | What to write | Why |
+|------|--------------|-----|
+| The Times Today | 2–3 articles: city intro, one event teaser, one hook into starter missions | First thing players should see — sets the world stage |
+| myHERO | 3 real starter missions with questions + outcomes; 2–3 job/announcement posts below them | Mission system is useless without real content |
+| Bliink | 3–5 NPC posts with images | Characters should already be posting before players arrive — makes the world feel alive |
+| Streetview | 1–2 Bloodhound articles | Tease something suspicious; noir tone |
+| Daily Dollar | 1–2 financial/economic items | Hint at the economic tensions in the city |
+| Messages | 1 pre-loaded NPC welcome message per player | So inbox isn't empty on first login |
+
+### What's Still Missing (Code Gaps)
+
+Beyond content, two terminal apps are placeholders with no code behind them:
+- **Inventory app** — Sheets tab exists, UI shows "Coming Soon." No backend routes. Needed before you can give players items or secret intel. (Phase 2.8, Phase 3.12)
+- **Notebook app** — Sheets tab exists, UI shows "Coming Soon." No backend routes. Notes/intel system requires this. (Phase 2.9)
+
+Everything else is working. These are the only two functional gaps before the game is fully launchable.
+
+---
+
 ## Current Status
 
 ### Phase 1: Foundation — COMPLETE
@@ -127,7 +179,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 > Illusion-of-choice mission system. Pre-written outcomes, questions that meander toward them, reactive images per answer. No true branching — no combinatorial explosion.
 
 **Design decisions locked in:**
-- 2–4 questions per mission, 2–3 options each
+- Up to 5 questions per mission, 2–3 options each
 - Each option has a hidden weight (a/b/c) pointing toward an outcome bucket
 - At submit, majority weight determines the outcome — auto-computed, no DM resolution per player
 - 2–3 outcomes written once per mission by DM (narrative + image + stat change string)
@@ -138,7 +190,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 **Sheets — 3 new tabs:**
 - [x] **6.1 `Missions` tab** — mission_id, title, description, image_url, visible, cycle_id. Outcome columns: outcome_a_label, outcome_a_narrative, outcome_a_image, outcome_a_changes (plain text e.g. `followers:+100, bank:-500, reputation:streetview:positive`). Same for b and c.
 - [x] **6.2 `MissionQuestions` tab** — mission_id, question_num, question_text, option_id, option_text, option_image (blank = keep current image), option_flavor (one-line reaction, blank = none), option_weight (a/b/c — hidden from player)
-- [x] **6.3 `MissionSubmissions` tab** — submission_id, username, hero_name, mission_id, q1–q4 answers, outcome_bucket (auto-computed), dm_override, resolved (yes/no), cycle_id, timestamp
+- [x] **6.3 `MissionSubmissions` tab** — submission_id, username, hero_name, mission_id, q1–q5 answers, outcome_bucket (auto-computed), dm_override, resolved (yes/no), cycle_id, timestamp
 
 **Backend — new API actions:**
 - [x] **6.4 `getMissions`** — returns all visible missions from Missions tab. Frontend checks Submissions tab to show correct state per player (available / submitted / resolved).
@@ -190,7 +242,7 @@ A themed web dashboard for an asynchronous, DM-driven multiplayer RPG.
 | Login | Username/password (SHA-256 hashed) | Simple enough for friends, secure enough for a game |
 | Game logic | DM-driven (manual for now) | Keeps it flexible, automation added later |
 | Feeds | All public | Everyone sees everything — simplifies permissions |
-| Missions | Branching, 3 questions deep, 2-3 choices each | Enough depth to feel meaningful, manageable content load |
+| Missions | Up to 5 questions, 2-3 choices each | Enough depth to feel meaningful, manageable content load |
 | Skills | 6 skills (Might, Agility, Charm, Intuition, Commerce, Intelligence) | Clean, distinct, easy to remember. Scale 1-10, 3 = average, 20 starting points |
 | Classes | 10 archetypes with recommended skill defaults | Players can redistribute points before locking in |
 | Aggregates | 4 derived scores (not skills) | Followers, Bank, Authority, Clout — displayed prominently on profile |
@@ -257,12 +309,13 @@ These came up in conversation and should be addressed in future sessions:
 - **In-portal image uploads (imgbb)** — Upload images directly from the admin portal without touching the terminal. Uses imgbb (free image hosting service) as a middleman — you upload from the browser, imgbb stores it and returns a public URL, URL gets saved to Sheets. The upload widgets are already in the admin portal forms (character, faction, place). Just needs `IMGBB_API_KEY` set in Netlify env vars to activate. See Phase 3.15.
 - **Tagging other characters** — In posts and messages, works for both player and NPC characters
 - **Feed influence mechanics** — Higher aggregate scores = more impact on the game world through posts
-- **Mission content math** — 3 questions × 2 choices = 7 questions per mission; 3 questions × 3 choices = 13 per mission
+- **Mission content math** — 5 questions × 2 choices = up to 31 decision paths per mission; 5 questions × 3 choices = up to 243. Outcome bucket computed from majority weight across all answers — no combinatorial explosion for the DM, just 2–3 outcomes to write.
 - **Inventory system** — Inventory tab in Sheets exists (schema defined), but Inventory app on terminal shows "Coming Soon"
 - **Notebook system** — NoteContent tab schema defined, but not built. Secret content loaded by content_id, popup overlay display.
 - **Save-as-note from messages** — Players save NPC messages as notes to notebook
 - **Reputation visibility gating** — Using reputation level to control what info players can see about factions/characters
 - ~~**Faction banners in faction popup**~~ — Done. Set `banner_url` in Factions tab (or via admin portal Factions section) to display a banner image at the top of the faction popup.
+- **Opus architecture review** — Use Claude Opus to analyze the full current architecture (backend routes, frontend structure, Sheets schema, admin portal) and flag anything that may become painful to maintain or extend as the game grows. Good to do before building Phase 8 mechanics.
 
 ---
 
