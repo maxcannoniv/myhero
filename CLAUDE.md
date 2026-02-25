@@ -293,6 +293,7 @@ Feed posts can be created in two ways:
 - Toggle `profile_visible` to reveal or hide a character from players
 - Paste a direct image URL into `profile_url` or `cutout_url` to set images without local file management
 - **Sync Players button** — if players registered before the auto-create feature was added, click "Sync Players → Characters" to retroactively create their Characters tab entries
+- Each character card shows `● profile` / `● cutout` status indicators (green = set, gray = missing) — quick visual scan to see who still needs images added
 
 **Add local image assets for a character (existing workflow — still works):**
 1. Drop the image into `_drop/characters/` (profile headshot) or `_drop/cutouts/` (transparent PNG)
@@ -494,7 +495,7 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
   - **Cycle** — one-click cycle advancement (increments counter + writes timestamp to Sheets)
   - **Players** — editable stat table for all players (skills + aggregates)
   - **Reputation** — player × faction grid with dropdown per cell; auto-saves on change
-  - **Characters** — roster + edit form; player characters auto-appear here on signup with green "PLAYER" badge and grouped separately from NPCs; toggle `profile_visible` to activate; "Sync Players" button retroactively creates Characters entries for any player who registered before that feature existed
+  - **Characters** — roster + edit form; player characters auto-appear here on signup with green "PLAYER" badge and grouped separately from NPCs; toggle `profile_visible` to activate; "Sync Players" button retroactively creates Characters entries for any player who registered before that feature existed; each card shows `● profile` / `● cutout` indicators (green = set, gray = missing) so you can see at a glance which characters still need images
   - **Factions** — list + edit form; auto-creates reputation rows on new faction save; set banner_url
   - **Places** — Bliink background list; add/edit slug + label + background_url
   - **Assets** — read-only reference list of all images in the system (character profiles, cutouts, faction banners, place backgrounds) with asset name, URL, and one-click Copy URL buttons. Thumbnails intentionally removed — loading full-resolution assets as thumbnails was crashing the admin tab (2–3 MB images × 10+ = hundreds of MB decoded in memory). See IMAGE SIZE WARNING in the Asset System section above.

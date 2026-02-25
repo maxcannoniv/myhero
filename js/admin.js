@@ -778,12 +778,18 @@ function renderCharactersView(characters) {
     var isHidden = c.profile_visible !== 'yes';
     var isPlayer = c.type === 'player';
     var borderStyle = isPlayer ? 'border-left: 3px solid var(--accent-green);' : '';
+    var hasProfile = !!(c.profile_url || c.asset_slug);
+    var hasCutout  = !!c.cutout_url;
     return '<div class="roster-card ' + (isHidden ? 'roster-card-hidden' : '') + '" data-char="' + escAttr(c.character_name) + '" style="' + borderStyle + '">' +
       (isPlayer ? '<div style="font-size:0.6rem;font-weight:700;color:var(--accent-green);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;">PLAYER</div>' : '') +
       '<div class="roster-card-name">' + escHtml(c.character_name) + (isHidden ? ' <span style="font-size:0.7rem;opacity:0.7;">(hidden)</span>' : '') + '</div>' +
       (isPlayer && c.username ? '<div style="font-size:0.7rem;color:var(--text-muted);">@' + escHtml(c.username) + '</div>' : '') +
       '<div class="roster-card-sub">' + escHtml(c.faction_role || c.faction || '') + '</div>' +
       '<div class="roster-card-type ' + (isPlayer ? 'roster-card-player' : 'roster-card-npc') + '">' + escHtml(c.class || '') + '</div>' +
+      '<div style="margin-top:5px;display:flex;gap:6px;">' +
+        (hasProfile ? '<span style="font-size:0.6rem;color:#4caf50;">● profile</span>' : '<span style="font-size:0.6rem;color:#555;">○ profile</span>') +
+        (hasCutout  ? '<span style="font-size:0.6rem;color:#4caf50;">● cutout</span>'  : '<span style="font-size:0.6rem;color:#555;">○ cutout</span>') +
+      '</div>' +
       '</div>';
   }
 

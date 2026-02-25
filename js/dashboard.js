@@ -1037,6 +1037,9 @@ function renderCurrentQuestion() {
   var q = activeQuestions[currentQuestionIndex];
   var total = activeQuestions.length;
 
+  // Clear flavor text from the previous answer now that the next question is showing
+  document.getElementById('missionFlavor').textContent = '';
+
   document.getElementById('missionQuestionNum').textContent =
     'Question ' + (currentQuestionIndex + 1) + ' of ' + total;
   document.getElementById('missionQuestionText').textContent = q.question_text;
@@ -1068,9 +1071,8 @@ function renderCurrentQuestion() {
       }
 
       // After a short pause, advance to the next question or confirm screen
-      var delay = opt.option_flavor ? 1200 : 400;
+      var delay = opt.option_flavor ? 1600 : 400;
       setTimeout(function() {
-        flavorEl.textContent = '';
         currentQuestionIndex++;
         if (currentQuestionIndex < activeQuestions.length) {
           renderCurrentQuestion();
