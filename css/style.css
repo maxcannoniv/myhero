@@ -1285,12 +1285,12 @@ select.form-input option {
 .bl-cutout {
   position: absolute;
   bottom: 0;
-  right: 0;
+  left: 0;
   height: 90%;
   width: auto;
   object-fit: contain;
   /* Subtle drop shadow so cutout reads clearly over any background */
-  filter: drop-shadow(-4px 0px 8px rgba(0,0,0,0.7));
+  filter: drop-shadow(4px 0px 8px rgba(0,0,0,0.7));
 }
 
 .bl-caption {
@@ -1874,11 +1874,11 @@ select.form-input option {
 .bl-preview-cutout {
   position: absolute;
   bottom: 0;
-  right: 0;
+  left: 0;
   height: 90%;
   width: auto;
   object-fit: contain;
-  filter: drop-shadow(-4px 0px 8px rgba(0,0,0,0.7));
+  filter: drop-shadow(4px 0px 8px rgba(0,0,0,0.7));
 }
 
 .bl-preset-grid {

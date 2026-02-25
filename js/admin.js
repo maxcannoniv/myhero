@@ -372,6 +372,7 @@ async function loadComposer() {
     '<div class="form-row"><label>Title <span class="text-muted">(optional)</span></label><input id="cTitle" class="form-input" placeholder="Headline or job title..."></div>' +
     '<div class="form-row"><label>Body</label><textarea id="cBody" class="form-textarea" rows="5" placeholder="Post content. Use [Name] for clickable character links."></textarea></div>' +
     '<div class="form-row"><label>Image URL <span class="text-muted">(optional)</span></label><input id="cImageUrl" class="form-input" placeholder="https://..."></div>' +
+    '<div class="form-row"><label>Cutout URL <span class="text-muted">(optional — Bliink only)</span></label><input id="cCutoutUrl" class="form-input" placeholder="https://myherogame.netlify.app/assets/characters/.../cutout.webp"></div>' +
     '<div class="form-row"><label>Publish</label>' +
     '<select id="cVisible" class="form-select"><option value="yes">Publish now (visible = yes)</option><option value="no">Save as draft (visible = no)</option></select>' +
     '</div>' +
@@ -455,6 +456,7 @@ async function handleCreatePost() {
     title:          document.getElementById('cTitle').value.trim(),
     body:           document.getElementById('cBody').value.trim(),
     image_url:      document.getElementById('cImageUrl').value.trim(),
+    cutout_url:     document.getElementById('cCutoutUrl').value.trim(),
     visible:        document.getElementById('cVisible').value,
   };
 
