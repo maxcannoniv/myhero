@@ -156,12 +156,20 @@ Raw image files from AI generators, design tools, or phone cameras are typically
 **How to compress (required before step 4):**
 1. Go to [squoosh.app](https://squoosh.app) — free, no install, runs in your browser
 2. Drag in your image
-3. On the right panel, change the format dropdown to **WebP** (or JPEG for photos)
+3. On the right panel, change the format dropdown to **WebP** (WebP supports transparency, so use it for cutouts too — not PNG)
 4. Drag the quality slider to **~80%** — watch the file size in the bottom bar drop
 5. Click the download arrow — save the compressed file
 6. Replace the original file in `assets/` with the compressed version before running `git push`
 
-Transparent PNGs (cutouts) should stay as PNG — WebP supports transparency too, so WebP is still a good choice for those.
+**Cutout-specific compression settings (confirmed):** WebP format, resize width to **650px**, quality ~80%. Width reduction is more effective than quality reduction for hitting the 200 KB target on cutouts. 650px is plenty — cutouts are never displayed at full resolution in the Bliink composer.
+
+**Re-compressing already-processed assets (no drop folder needed):**
+If a file is already in the correct `assets/` subfolder and just needs to be smaller:
+1. Drag the file from Finder into squoosh.app
+2. Adjust width (650px for cutouts) and quality (~80%) until file size is under 200 KB
+3. Download the compressed file, rename it to match the original (e.g. `cutout.webp`)
+4. Drag it back into the same folder in Finder, replacing the old file
+5. Git push — no need to re-run `process-assets.js`
 
 **Workflow for new assets (use this every time):**
 1. Name the file after the character/faction/place. Spaces and capitals are fine — the script handles the rest.
@@ -464,7 +472,7 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
 
 ---
 
-## Current State (as of 2026-02-21)
+## Current State (as of 2026-02-24)
 
 **What's built and working:**
 - Full login/signup flow with class selection and skill allocation
@@ -499,6 +507,7 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
   - **Factions** — list + edit form; auto-creates reputation rows on new faction save; set banner_url
   - **Places** — Bliink background list; add/edit slug + label + background_url
   - **Assets** — read-only reference list of all images in the system (character profiles, cutouts, faction banners, place backgrounds) with asset name, URL, and one-click Copy URL buttons. Thumbnails intentionally removed — loading full-resolution assets as thumbnails was crashing the admin tab (2–3 MB images × 10+ = hundreds of MB decoded in memory). See IMAGE SIZE WARNING in the Asset System section above.
+- **Admin portal Chrome crash fixes (2026-02-24):** Three separate crashes were tracked down and fixed. (1) Places roster cards: removed image thumbnails — same fix as Assets. (2) Characters section: `<img src="">` in the upload widget HTML was causing Chrome to fire a request to `admin.html` on every form render; fixed by removing the static `<img>` and only creating one via `document.createElement` when a file is actually selected. (3) Upload widget listener accumulation: `addEventListener('change')` and `addEventListener('click')` on form elements were holding closure references to detached DOM nodes across card clicks; fixed by switching to `fileInput.onchange` and `uploadBtn.onclick` so the listeners are owned by the element and released when the form is replaced. Rule going forward: never use `addEventListener` on elements inside dynamically-replaced form areas — use `.onevent` properties instead.
 - Backend fully on Netlify Functions (auto-deploys with git push)
 - Live at https://myherogame.netlify.app
 

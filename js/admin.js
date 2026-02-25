@@ -1244,7 +1244,7 @@ function uploadWidget(inputId, statusId, fieldId) {
   return '<div class="image-upload-area">' +
     '<input type="file" id="' + inputId + '" accept="image/*">' +
     '<button class="btn-secondary btn-small" id="' + inputId + 'Btn">Upload to imgbb</button>' +
-    '<img id="' + inputId + 'Preview" class="image-preview" src="" alt="">' +
+    '<div id="' + inputId + 'Preview"></div>' +
     '<div id="' + statusId + '" class="upload-url-display"></div>' +
     '</div>';
 }
@@ -1261,8 +1261,8 @@ function wireUploadWidget(inputId, statusId, fieldId) {
   var pendingBase64 = null;
   var pendingName = null;
 
-  fileInput.addEventListener('change', function() {
-    var file = fileInput.files[0];
+  fileInput.onchange = function() {
+    var file = this.files[0];
     if (!file) return;
 
     var reader = new FileReader();
@@ -1272,14 +1272,18 @@ function wireUploadWidget(inputId, statusId, fieldId) {
       pendingName = file.name;
 
       if (preview) {
-        preview.src = dataUrl;
-        preview.style.display = 'block';
+        // Create a fresh img element only when a file is actually chosen
+        preview.innerHTML = '';
+        var img = document.createElement('img');
+        img.src = dataUrl;
+        img.className = 'image-preview';
+        preview.appendChild(img);
       }
     };
     reader.readAsDataURL(file);
-  });
+  };
 
-  uploadBtn.addEventListener('click', async function() {
+  uploadBtn.onclick = async function() {
     if (!pendingBase64) { alert('Select an image file first.'); return; }
 
     uploadBtn.disabled = true;
@@ -1299,7 +1303,7 @@ function wireUploadWidget(inputId, statusId, fieldId) {
     } else {
       if (statusEl) statusEl.textContent = 'Upload failed: ' + result.error;
     }
-  });
+  };
 }
 
 // -----------------------------------------------
