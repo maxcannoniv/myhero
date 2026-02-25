@@ -820,7 +820,7 @@ function renderCharactersView(characters) {
     '<div id="charFormArea">' + formHtml + '</div>' +
     '</div>';
 
-  document.getElementById('syncPlayersBtn').addEventListener('click', async function() {
+  document.getElementById('syncPlayersBtn').onclick = async function() {
     var btn = document.getElementById('syncPlayersBtn');
     btn.disabled = true;
     btn.textContent = 'Syncing...';
@@ -839,13 +839,13 @@ function renderCharactersView(characters) {
     } else {
       showStatus('syncStatus', result.error, false);
     }
-  });
+  };
 
-  document.getElementById('newCharBtn').addEventListener('click', function() {
+  document.getElementById('newCharBtn').onclick = function() {
     editingCharacter = {};
     document.getElementById('charFormArea').innerHTML = buildCharacterForm({});
     wireCharacterForm();
-  });
+  };
 
   content.querySelectorAll('[data-char]').forEach(function(card) {
     card.addEventListener('click', function() {
@@ -901,7 +901,7 @@ function wireCharacterForm() {
   var saveBtn = document.getElementById('saveCharBtn');
   if (!saveBtn) return;
 
-  saveBtn.addEventListener('click', async function() {
+  saveBtn.onclick = async function() {
     var data = collectFormValues(['character_name', 'type', 'class', 'faction', 'faction_role', 'bio', 'profile_visible', 'asset_slug', 'profile_url', 'cutout_url']);
 
     if (!data.character_name) { showStatus('charStatus', 'Character name is required.', false); return; }
@@ -921,7 +921,7 @@ function wireCharacterForm() {
 
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Changes';
-  });
+  };
 }
 
 // -----------------------------------------------
@@ -964,11 +964,11 @@ function renderFactionsView(factions) {
     '<div id="factionFormArea">' + formHtml + '</div>' +
     '</div>';
 
-  document.getElementById('newFactionBtn').addEventListener('click', function() {
+  document.getElementById('newFactionBtn').onclick = function() {
     editingFaction = {};
     document.getElementById('factionFormArea').innerHTML = buildFactionForm({});
     wireFactionForm();
-  });
+  };
 
   content.querySelectorAll('[data-faction]').forEach(function(card) {
     card.addEventListener('click', function() {
@@ -1012,7 +1012,7 @@ function wireFactionForm() {
   var saveBtn = document.getElementById('saveFactionBtn');
   if (!saveBtn) return;
 
-  saveBtn.addEventListener('click', async function() {
+  saveBtn.onclick = async function() {
     var data = collectFormValues(['faction_name', 'description', 'leader', 'power_multiplier', 'members_public', 'asset_slug', 'banner_url']);
 
     if (!data.faction_name) { showStatus('factionStatus', 'Faction name is required.', false); return; }
@@ -1034,7 +1034,7 @@ function wireFactionForm() {
 
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Changes';
-  });
+  };
 }
 
 // -----------------------------------------------
@@ -1061,9 +1061,12 @@ function renderPlacesView(places) {
     '<span style="font-size:1.3rem;color:var(--accent-yellow);">+ New Place</span></div>';
 
   places.forEach(function(p) {
+    // No image thumbnails here — same reason as Assets section. Place backgrounds can be
+    // large uncompressed uploads and loading them all simultaneously crashes Chrome's GPU.
+    // The full URL is visible and copyable in the edit form when you click the card.
     placesHtml +=
       '<div class="place-card" data-slug="' + escAttr(p.slug) + '">' +
-      (p.background_url ? '<img class="place-card-img" src="' + escAttr(p.background_url) + '" alt="" loading="lazy">' : '<div class="place-card-img" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);">No Image</div>') +
+      '<div class="place-card-no-img">&#128444;</div>' +
       '<div class="place-card-label">' + escHtml(p.label || '') + '</div>' +
       '<div class="place-card-slug">' + escHtml(p.slug || '') + '</div>' +
       '</div>';
@@ -1080,11 +1083,11 @@ function renderPlacesView(places) {
     '<div id="placeFormArea">' + formHtml + '</div>' +
     '</div>';
 
-  document.getElementById('newPlaceBtn').addEventListener('click', function() {
+  document.getElementById('newPlaceBtn').onclick = function() {
     editingPlace = {};
     document.getElementById('placeFormArea').innerHTML = buildPlaceForm({});
     wirePlaceForm();
-  });
+  };
 
   content.querySelectorAll('[data-slug]').forEach(function(card) {
     card.addEventListener('click', function() {
@@ -1120,7 +1123,7 @@ function wirePlaceForm() {
   var saveBtn = document.getElementById('savePlaceBtn');
   if (!saveBtn) return;
 
-  saveBtn.addEventListener('click', async function() {
+  saveBtn.onclick = async function() {
     var data = collectFormValues(['slug', 'label', 'background_url']);
 
     if (!data.slug || !data.label) { showStatus('placeStatus', 'Slug and label are required.', false); return; }
@@ -1141,7 +1144,7 @@ function wirePlaceForm() {
 
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Changes';
-  });
+  };
 }
 
 // -----------------------------------------------
