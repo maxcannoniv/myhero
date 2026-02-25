@@ -1280,17 +1280,18 @@ select.form-input option {
   height: 100%;
   object-fit: cover;
   display: block;
+  transform: scale(1.05); /* slight zoom to clip any white edges from the source image */
 }
 
 .bl-cutout {
   position: absolute;
-  bottom: 0;
-  left: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   height: 90%;
   width: auto;
   object-fit: contain;
-  /* Subtle drop shadow so cutout reads clearly over any background */
-  filter: drop-shadow(4px 0px 8px rgba(0,0,0,0.7));
+  filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.7));
 }
 
 .bl-caption {
@@ -1869,16 +1870,18 @@ select.form-input option {
   height: 100%;
   object-fit: cover;
   display: block;
+  transform: scale(1.05);
 }
 
 .bl-preview-cutout {
   position: absolute;
-  bottom: 0;
-  left: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   height: 90%;
   width: auto;
   object-fit: contain;
-  filter: drop-shadow(4px 0px 8px rgba(0,0,0,0.7));
+  filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.7));
 }
 
 .bl-preset-grid {
