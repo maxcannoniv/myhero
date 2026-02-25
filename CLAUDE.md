@@ -250,8 +250,8 @@ Feed posts can be created in two ways:
 
 **Preferred: Admin portal Post Composer** (`/admin.html` → Post Composer)
 - Select feed, posted_by character, title, body
-- **Image URL** — dropdown populated from Places tab (background scenes by name). Select "Other (paste URL)..." to type a custom URL.
-- **Cutout URL** — dropdown populated from Characters with `cutout_url` set (character names). Select "Other (paste URL)..." to type a custom URL. Bliink only — ignored by other feeds.
+- **Image URL** — dropdown with two groups: **Place Backgrounds** (from Places tab, sorted A–Z) and **Character Profiles** (characters with `profile_url` set, sorted A–Z). Select "Other (paste URL)..." to type a custom URL.
+- **Cutout URL** — dropdown populated from characters with `cutout_url` set, sorted A–Z. Select "Other (paste URL)..." to type a custom URL. Bliink only — ignored by other feeds.
 - Toggle publish now vs. save as draft
 - Timestamp and cycle_id are auto-filled
 - Existing posts are listed with Publish/Unpublish toggle buttons
@@ -474,7 +474,7 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
 
 ---
 
-## Current State (as of 2026-02-25)
+## Current State (as of 2026-02-26)
 
 **What's built and working:**
 - Full login/signup flow with class selection and skill allocation
@@ -500,7 +500,7 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
 - **Admin portal** — DM-only interface at `/admin.html`. Login-gated (ADMIN_PASSWORD env var). 11 sections:
   - **Dashboard** — overview stats (players, unread messages, pending missions, current cycle)
   - **NPC Inbox** — send messages as any NPC to any player; view full conversation history; opening a conversation marks those player messages as read automatically
-  - **Post Composer** — write and publish feed posts with auto-filled timestamp + cycle_id; publish/unpublish toggle on existing posts; Posted By Type auto-fills (character/faction) when you pick a name; Image URL and Cutout URL are dropdowns populated from Places and Characters in Sheets (with "Other" option for custom URLs)
+  - **Post Composer** — write and publish feed posts with auto-filled timestamp + cycle_id; publish/unpublish toggle on existing posts; Posted By Type auto-fills (character/faction) when you pick a name; Image URL dropdown has two groups (Place Backgrounds from Places tab + Character Profiles from characters with `profile_url`), both sorted A–Z; Cutout URL dropdown lists characters with `cutout_url`, sorted A–Z; both dropdowns have "Other (paste URL)..." fallback
   - **Missions** — view all player submissions per mission; override outcome bucket; flip resolved = yes
   - **Cycle** — one-click cycle advancement (increments counter + writes timestamp to Sheets)
   - **Players** — editable stat table for all players (skills + aggregates)
