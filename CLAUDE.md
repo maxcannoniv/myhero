@@ -188,10 +188,10 @@ If a file is already in the correct `assets/` subfolder and just needs to be sma
 5. Git push → Netlify auto-deploys
 6. Optionally run `node sync-assets.js` to verify everything is wired up
 
-**Existing assets that still need compression:** bloodhound, mongrel, dozer, aurora-edge, smiles (profiles + cutouts), mongrels-towing-yard (background). All are currently 2–3.4 MB. Use squoosh.app to bring each under 200 KB before the next major push.
-
 **Characters with assets (profile + cutout):** bloodhound, mongrel, dozer, aurora-edge, smiles
 **Places with assets:** mongrels-towing-yard
+
+All current assets are compressed under 200 KB. No backlog.
 
 ### Player Mystery
 Players don't know which characters are NPCs and which are real players. All characters are presented the same way in feeds and messages.
@@ -249,7 +249,9 @@ Everything the GM needs to do to run the game. Items marked **[DONE]** are handl
 Feed posts can be created in two ways:
 
 **Preferred: Admin portal Post Composer** (`/admin.html` → Post Composer)
-- Select feed, posted_by character, title, body, optional image URL
+- Select feed, posted_by character, title, body
+- **Image URL** — dropdown populated from Places tab (background scenes by name). Select "Other (paste URL)..." to type a custom URL.
+- **Cutout URL** — dropdown populated from Characters with `cutout_url` set (character names). Select "Other (paste URL)..." to type a custom URL. Bliink only — ignored by other feeds.
 - Toggle publish now vs. save as draft
 - Timestamp and cycle_id are auto-filled
 - Existing posts are listed with Publish/Unpublish toggle buttons
@@ -472,13 +474,13 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
 
 ---
 
-## Current State (as of 2026-02-24)
+## Current State (as of 2026-02-25)
 
 **What's built and working:**
 - Full login/signup flow with class selection and skill allocation
 - Phone-style terminal dashboard with 9 apps in a 3×3 grid (row 1: myHERO, Bliink, The Times; row 2: Daily Dollar, Streetview, Messages; row 3: Profile, Inventory, Notebook)
 - 5 live feeds with distinct visual styles: Streetview (noir), Daily Dollar (WSJ), myHERO (job board), Bliink (Instagram), The Times Today (broadsheet newspaper)
-- Bliink posting with CSS-layered compositing — background scene picker (loaded dynamically from Places tab in Sheets) + optional character cutout picker (loaded from characters with cutout_url) + live preview + caption. Both image URLs saved to Feeds tab.
+- Bliink posting with CSS-layered compositing — background scene picker (loaded dynamically from Places tab in Sheets) + optional character cutout picker (loaded from characters with cutout_url) + live preview + caption. Both image URLs saved to Feeds tab. Cutout is positioned bottom-left over the background.
 - Messaging system: inbox, 1-on-1 threads, contacts, send/receive messages
 - Character profile popups — full trading-card layout: large image at top, info + bio + actions below. Clickable from any feed or faction popup. Supports `profile_url` (direct URL) or `asset_slug` (local file) for the profile image.
 - Faction popups — clicking a faction name opens a card with description, leader (clickable), optional banner image, and member list (if `members_public = yes`). All members are clickable.
@@ -498,7 +500,7 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
 - **Admin portal** — DM-only interface at `/admin.html`. Login-gated (ADMIN_PASSWORD env var). 11 sections:
   - **Dashboard** — overview stats (players, unread messages, pending missions, current cycle)
   - **NPC Inbox** — send messages as any NPC to any player; view full conversation history; opening a conversation marks those player messages as read automatically
-  - **Post Composer** — write and publish feed posts with auto-filled timestamp + cycle_id; publish/unpublish toggle on existing posts; Posted By Type auto-fills (character/faction) when you pick a name
+  - **Post Composer** — write and publish feed posts with auto-filled timestamp + cycle_id; publish/unpublish toggle on existing posts; Posted By Type auto-fills (character/faction) when you pick a name; Image URL and Cutout URL are dropdowns populated from Places and Characters in Sheets (with "Other" option for custom URLs)
   - **Missions** — view all player submissions per mission; override outcome bucket; flip resolved = yes
   - **Cycle** — one-click cycle advancement (increments counter + writes timestamp to Sheets)
   - **Players** — editable stat table for all players (skills + aggregates)
