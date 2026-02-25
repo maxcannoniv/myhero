@@ -342,16 +342,33 @@ async function loadComposer() {
   var posts = (postsResult.success && postsResult.posts) ? postsResult.posts : [];
   var places = (placesResult.success && placesResult.places) ? placesResult.places : [];
 
-  // Build image (background) dropdown options from Places tab
+  // Sort places and characters alphabetically for dropdowns
+  var sortedPlaces = places.slice().sort(function(a, b) { return (a.label || a.slug).localeCompare(b.label || b.slug); });
+  var sortedChars = characters.slice().sort(function(a, b) { return a.character_name.localeCompare(b.character_name); });
+
+  // Build image dropdown: Place Backgrounds optgroup + Character Profiles optgroup
   var bgOptions = '<option value="">-- None --</option>';
-  places.forEach(function(p) {
-    if (p.background_url) bgOptions += '<option value="' + escAttr(p.background_url) + '">' + escHtml(p.label || p.slug) + '</option>';
-  });
+  var bgPlaces = sortedPlaces.filter(function(p) { return p.background_url; });
+  var bgChars = sortedChars.filter(function(c) { return c.profile_url; });
+  if (bgPlaces.length) {
+    bgOptions += '<optgroup label="Place Backgrounds">';
+    bgPlaces.forEach(function(p) {
+      bgOptions += '<option value="' + escAttr(p.background_url) + '">' + escHtml(p.label || p.slug) + '</option>';
+    });
+    bgOptions += '</optgroup>';
+  }
+  if (bgChars.length) {
+    bgOptions += '<optgroup label="Character Profiles">';
+    bgChars.forEach(function(c) {
+      bgOptions += '<option value="' + escAttr(c.profile_url) + '">' + escHtml(c.character_name) + '</option>';
+    });
+    bgOptions += '</optgroup>';
+  }
   bgOptions += '<option value="__other__">Other (paste URL)...</option>';
 
-  // Build cutout dropdown options from characters that have a cutout_url
+  // Build cutout dropdown options from characters that have a cutout_url (sorted A–Z)
   var cutoutOptions = '<option value="">-- None --</option>';
-  characters.forEach(function(c) {
+  sortedChars.forEach(function(c) {
     if (c.cutout_url) cutoutOptions += '<option value="' + escAttr(c.cutout_url) + '">' + escHtml(c.character_name) + '</option>';
   });
   cutoutOptions += '<option value="__other__">Other (paste URL)...</option>';
