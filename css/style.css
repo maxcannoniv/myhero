@@ -1285,9 +1285,9 @@ select.form-input option {
 
 .bl-cutout {
   position: absolute;
-  top: 50%;
+  bottom: 0;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   height: 90%;
   width: auto;
   object-fit: contain;
@@ -1875,9 +1875,9 @@ select.form-input option {
 
 .bl-preview-cutout {
   position: absolute;
-  top: 50%;
+  bottom: 0;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   height: 90%;
   width: auto;
   object-fit: contain;
