@@ -329,16 +329,32 @@ function renderNpcThread() {
 async function loadComposer() {
   var content = document.getElementById('adminContent');
 
-  // Fetch characters and factions in parallel for the "posted_by" picker
-  var [charResult, factionResult, postsResult] = await Promise.all([
+  // Fetch characters, factions, posts, and places in parallel
+  var [charResult, factionResult, postsResult, placesResult] = await Promise.all([
     adminGetAllCharacters(),
     adminGetFactions(),
-    adminGetAllPosts()
+    adminGetAllPosts(),
+    adminGetPlaces()
   ]);
 
   var characters = (charResult.success && charResult.characters) ? charResult.characters : [];
   var factions = (factionResult.success && factionResult.factions) ? factionResult.factions : [];
   var posts = (postsResult.success && postsResult.posts) ? postsResult.posts : [];
+  var places = (placesResult.success && placesResult.places) ? placesResult.places : [];
+
+  // Build image (background) dropdown options from Places tab
+  var bgOptions = '<option value="">-- None --</option>';
+  places.forEach(function(p) {
+    if (p.background_url) bgOptions += '<option value="' + escAttr(p.background_url) + '">' + escHtml(p.label || p.slug) + '</option>';
+  });
+  bgOptions += '<option value="__other__">Other (paste URL)...</option>';
+
+  // Build cutout dropdown options from characters that have a cutout_url
+  var cutoutOptions = '<option value="">-- None --</option>';
+  characters.forEach(function(c) {
+    if (c.cutout_url) cutoutOptions += '<option value="' + escAttr(c.cutout_url) + '">' + escHtml(c.character_name) + '</option>';
+  });
+  cutoutOptions += '<option value="__other__">Other (paste URL)...</option>';
 
   // Build posted_by options (characters + factions)
   var posterOptions = '<option value="">-- Select who is posting --</option>';
@@ -371,8 +387,14 @@ async function loadComposer() {
     '</div>' +
     '<div class="form-row"><label>Title <span class="text-muted">(optional)</span></label><input id="cTitle" class="form-input" placeholder="Headline or job title..."></div>' +
     '<div class="form-row"><label>Body</label><textarea id="cBody" class="form-textarea" rows="5" placeholder="Post content. Use [Name] for clickable character links."></textarea></div>' +
-    '<div class="form-row"><label>Image URL <span class="text-muted">(optional)</span></label><input id="cImageUrl" class="form-input" placeholder="https://..."></div>' +
-    '<div class="form-row"><label>Cutout URL <span class="text-muted">(optional — Bliink only)</span></label><input id="cCutoutUrl" class="form-input" placeholder="https://myherogame.netlify.app/assets/characters/.../cutout.webp"></div>' +
+    '<div class="form-row"><label>Image URL <span class="text-muted">(optional)</span></label>' +
+    '<select id="cImageSelect" class="form-select">' + bgOptions + '</select>' +
+    '<input id="cImageUrl" class="form-input" style="display:none;margin-top:6px;" placeholder="https://...">' +
+    '</div>' +
+    '<div class="form-row"><label>Cutout URL <span class="text-muted">(optional — Bliink only)</span></label>' +
+    '<select id="cCutoutSelect" class="form-select">' + cutoutOptions + '</select>' +
+    '<input id="cCutoutUrl" class="form-input" style="display:none;margin-top:6px;" placeholder="https://...">' +
+    '</div>' +
     '<div class="form-row"><label>Publish</label>' +
     '<select id="cVisible" class="form-select"><option value="yes">Publish now (visible = yes)</option><option value="no">Save as draft (visible = no)</option></select>' +
     '</div>' +
@@ -394,6 +416,14 @@ async function loadComposer() {
     '</div>'; // .two-col
 
   document.getElementById('composerSubmitBtn').addEventListener('click', handleCreatePost);
+
+  // Show/hide "Other" text inputs when custom URL is needed
+  document.getElementById('cImageSelect').addEventListener('change', function() {
+    document.getElementById('cImageUrl').style.display = this.value === '__other__' ? 'block' : 'none';
+  });
+  document.getElementById('cCutoutSelect').addEventListener('change', function() {
+    document.getElementById('cCutoutUrl').style.display = this.value === '__other__' ? 'block' : 'none';
+  });
 
   // Auto-fill Posted By Type based on which optgroup the selected name belongs to
   document.getElementById('cPostedBy').addEventListener('change', function() {
@@ -455,8 +485,8 @@ async function handleCreatePost() {
     posted_by_type: document.getElementById('cPostedByType').value,
     title:          document.getElementById('cTitle').value.trim(),
     body:           document.getElementById('cBody').value.trim(),
-    image_url:      document.getElementById('cImageUrl').value.trim(),
-    cutout_url:     document.getElementById('cCutoutUrl').value.trim(),
+    image_url:      (document.getElementById('cImageSelect').value === '__other__' ? document.getElementById('cImageUrl').value.trim() : document.getElementById('cImageSelect').value),
+    cutout_url:     (document.getElementById('cCutoutSelect').value === '__other__' ? document.getElementById('cCutoutUrl').value.trim() : document.getElementById('cCutoutSelect').value),
     visible:        document.getElementById('cVisible').value,
   };
 
