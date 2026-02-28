@@ -808,20 +808,31 @@ var editingCharacter = null;
 
 async function loadCharacters() {
   var content = document.getElementById('adminContent');
-  content.innerHTML = '<h1 class="section-title">Characters</h1><div class="loading-msg">Loading...</div>';
+  content.innerHTML = '<h1 class="section-title">Characters</h1><div class="loading-msg">Step 1: Fetching characters from Sheets...</div>';
 
   var result = await adminGetAllCharacters();
   if (!result.success) { content.innerHTML = '<h1 class="section-title">Characters</h1>' + errHtml(result.error); return; }
 
-  renderCharactersView(result.characters || []);
+  var chars = result.characters || [];
+  document.querySelector('.loading-msg').textContent = 'Step 2: Got ' + chars.length + ' characters. Building page...';
+
+  renderCharactersView(chars);
 }
+
+// DIAGNOSTIC — remove after crash is identified
 
 function renderCharactersView(characters) {
   var content = document.getElementById('adminContent');
 
+  // DIAGNOSTIC step marker
+  var diagEl = document.querySelector('.loading-msg');
+  if (diagEl) diagEl.textContent = 'Step 3: Splitting players/NPCs...';
+
   // Split into players and NPCs for visual grouping
   var playerChars = characters.filter(function(c) { return c.type === 'player'; });
   var npcChars = characters.filter(function(c) { return c.type !== 'player'; });
+
+  if (diagEl) diagEl.textContent = 'Step 4: Building ' + characters.length + ' cards (' + playerChars.length + ' players, ' + npcChars.length + ' NPCs)...';
 
   function buildCard(c) {
     var isHidden = c.profile_visible !== 'yes';
@@ -853,13 +864,19 @@ function renderCharactersView(characters) {
   npcChars.forEach(function(c) { cardsHtml += buildCard(c); });
   cardsHtml += '</div>';
 
+  if (diagEl) diagEl.textContent = 'Step 5: Cards HTML built. Building form...';
+
   // Sync button — creates Characters entries for players who registered before auto-create was added
   var syncHtml = '<div style="margin-bottom:12px;display:flex;align-items:center;gap:12px;">' +
     '<button class="btn-secondary btn-small" id="syncPlayersBtn">Sync Players → Characters</button>' +
     '<span class="status-msg" id="syncStatus" style="font-size:0.8rem;"></span>' +
     '</div>';
 
+  if (diagEl) diagEl.textContent = 'Step 6: Building edit form (editingCharacter=' + (editingCharacter !== null ? '"' + (editingCharacter.character_name || 'new') + '"' : 'null') + ')...';
+
   var formHtml = editingCharacter !== null ? buildCharacterForm(editingCharacter) : '<div class="empty-state">Click a character to edit, or click + New Character.</div>';
+
+  if (diagEl) diagEl.textContent = 'Step 7: Setting page HTML...';
 
   content.innerHTML =
     '<h1 class="section-title">Characters</h1>' +
