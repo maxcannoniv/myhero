@@ -69,7 +69,7 @@ Three separate crashes were tracked down and fixed:
 ## What's NOT Built Yet
 
 1. **Feed content** — Only sample/test posts exist. DM needs to write real Streetview articles, Daily Dollar news, myHERO job listings, NPC Bliink posts, and The Times Today articles. (Use Post Composer in admin portal.)
-2. **Real missions** — Sheets structure and UI are live. The Proposal (c1-the-proposal) is the first real mission. DM needs to write additional missions with questions, images, and outcome narratives.
+2. **Real missions** — Sheets structure and UI are live. The Proposal (c1-the-proposal) is fully configured: 4 questions, Q3 option flavors set (Smiles reacts to player's line before advancing), Q4 weights corrected (a=accept/Hell yes, b=negotiate/$1000 cut, c=refuse/Hell no), Q4-C gated on commerce:5, outcome closing quotes set on all three buckets. DM needs to write additional missions with questions, images, and outcome narratives.
 3. **Notebook system** — Inventory items work. Notes/intel (secret content loaded from a NoteContent tab) are not built — the Notebook terminal app still shows "Coming Soon".
 4. **Mission skill-stat auto-apply** — Most outcome effects auto-apply on resolve (`bank`, `inventory`, `reputation`, `contacts`, `relation`, `message`). Raw skill stat changes (might, agility, etc.) and aggregate scores (followers, positional_authority, clout) still require manual Players tab edits (Phase 3.7 remainder).
 5. **Password reset** — No admin UI yet. Manual Sheets edit required (Phase 3.13).
