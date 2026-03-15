@@ -69,7 +69,14 @@ Three separate crashes were tracked down and fixed:
 ## What's NOT Built Yet
 
 1. **Feed content** — Only sample/test posts exist. DM needs to write real Streetview articles, Daily Dollar news, myHERO job listings, NPC Bliink posts, and The Times Today articles. (Use Post Composer in admin portal.)
-2. **Real missions** — Sheets structure and UI are live. The Proposal (c1-the-proposal) is fully configured: 4 questions, Q3 option flavors set (Smiles reacts to player's line before advancing), Q4 weights corrected (a=accept/Hell yes, b=negotiate/$1000 cut, c=refuse/Hell no), Q4-C gated on commerce:5, outcome closing quotes set on all three buckets. DM needs to write additional missions with questions, images, and outcome narratives.
+2. **Real missions** — Sheets structure and UI are live. The Proposal (c1-the-proposal) is fully configured and fully playable:
+   - 4 questions. Q1/Q2 are intro flavor (no weights). Q3 is "why do you need a hero / pyramid scheme." Q4 is the real decision.
+   - Q3 option_flavors: Smiles reacts to the player's question before advancing to Q4 ("I can't meet this huge demand alone!..." / "A pyramid scheme, HA!...").
+   - Q3→Q4 bubble preservation: Q4's `question_text` is blank, and `renderCurrentQuestion` now guards with `if (q.question_text)` — so the bubble keeps showing Q3's flavor text when Q4 renders instead of being overwritten.
+   - Q4 weights corrected (a=accept/Hell yes, b=negotiate/$1000 cut, c=refuse/Hell no). Q4-C gated on commerce:5.
+   - Q4 option_flavors: Smiles reacts immediately after the player picks ("It's a deal! Pleasure doing business with you" / "That's too bad, I thought you had what it takes") for 1.6s before the confirm screen.
+   - Outcome closing quotes set on all three buckets (shown in NPC speech bubble on the outcome screen after DM resolves).
+   - DM needs to write additional missions.
 3. **Notebook system** — Inventory items work. Notes/intel (secret content loaded from a NoteContent tab) are not built — the Notebook terminal app still shows "Coming Soon".
 4. **Mission skill-stat auto-apply** — Most outcome effects auto-apply on resolve (`bank`, `inventory`, `reputation`, `contacts`, `relation`, `message`). Raw skill stat changes (might, agility, etc.) and aggregate scores (followers, positional_authority, clout) still require manual Players tab edits (Phase 3.7 remainder).
 5. **Password reset** — No admin UI yet. Manual Sheets edit required (Phase 3.13).
