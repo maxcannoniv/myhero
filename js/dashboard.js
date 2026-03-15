@@ -1049,7 +1049,9 @@ function renderCurrentQuestion() {
   var q = activeQuestions[currentQuestionIndex];
   var total = activeQuestions.length;
 
-  document.getElementById('missionNpcBubble').textContent = q.question_text;
+  if (q.question_text) {
+    document.getElementById('missionNpcBubble').textContent = q.question_text;
+  }
 
   var optionsEl = document.getElementById('missionOptions');
   optionsEl.innerHTML = '';
