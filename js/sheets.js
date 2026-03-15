@@ -120,8 +120,8 @@ async function sheetsAddContact(heroName, contactName) {
   return await callAppsScript('addContact', { heroName: heroName, contactName: contactName });
 }
 
-async function sheetsGetCharacter(characterName) {
-  return await callAppsScript('getCharacter', { characterName: characterName });
+async function sheetsGetCharacter(characterName, heroName) {
+  return await callAppsScript('getCharacter', { characterName: characterName, heroName: heroName || '' });
 }
 
 async function sheetsGetFaction(factionName) {
@@ -212,7 +212,37 @@ async function adminUploadImage(imageBase64, imageName) {
 }
 async function adminGetPlaces() { return await adminCall('adminGetPlaces'); }
 async function adminSavePlace(placeData) { return await adminCall('adminSavePlace', placeData); }
+async function adminGetRelations(characterName) {
+  return await adminCall('adminGetRelations', { characterName: characterName });
+}
+async function adminSetRelation(heroName, characterName, relation, dmNotes) {
+  return await adminCall('adminSetRelation', {
+    heroName: heroName,
+    characterName: characterName,
+    relation: relation,
+    dmNotes: dmNotes || '',
+  });
+}
 async function adminSyncPlayers() { return await adminCall('adminSyncPlayers'); }
 async function adminMarkNpcMessagesRead(npcName, fromPlayer) {
   return await adminCall('adminMarkNpcMessagesRead', { npcName: npcName, fromPlayer: fromPlayer });
+}
+
+// --- Inventory ---
+
+async function sheetsGetInventory(username) {
+  return await callAppsScript('getInventory', { username: username });
+}
+
+async function adminGetInventory(username) {
+  return await adminCall('adminGetInventory', { username: username });
+}
+
+async function adminSetInventory(username, itemName, quantity, category) {
+  return await adminCall('adminSetInventory', {
+    username: username,
+    item_name: itemName,
+    quantity: quantity,
+    category: category
+  });
 }

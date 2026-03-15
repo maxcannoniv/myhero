@@ -1656,6 +1656,25 @@ select.form-input option {
   min-height: 1.2em;
 }
 
+.char-popup-relation {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 4px;
+  margin: 6px 0 10px;
+  background: #333;
+  color: #aaa;
+}
+.char-popup-relation:empty { display: none; }
+.char-popup-relation-hostile  { background: #4a0f0f; color: #ff6b6b; }
+.char-popup-relation-negative { background: #3a2200; color: #ffa040; }
+.char-popup-relation-neutral  { background: #222;    color: #aaa; }
+.char-popup-relation-positive { background: #0f2a1a; color: #4caf50; }
+.char-popup-relation-ally     { background: #0f1f3a; color: #64b5f6; }
+
 /* ============================================
    FACTION POPUP
    ============================================ */
@@ -2253,4 +2272,41 @@ select.form-input option {
   font-size: 0.9rem;
   color: var(--accent-green);
   letter-spacing: 1px;
+}
+
+/* ============================================
+   INVENTORY APP
+   ============================================ */
+
+.inventory-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  gap: 10px;
+}
+
+.inventory-icon {
+  font-size: 1.3rem;
+  width: 28px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.inventory-name {
+  flex: 1;
+  font-size: 0.95rem;
+}
+
+.inventory-qty {
+  font-size: 0.9rem;
+  color: #888;
+  white-space: nowrap;
+}
+
+.inventory-empty {
+  text-align: center;
+  color: #888;
+  font-size: 0.9rem;
+  padding: 32px 16px;
 }

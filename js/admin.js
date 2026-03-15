@@ -121,6 +121,7 @@ function navigateTo(section) {
     missions:   loadMissions,
     cycle:      loadCycle,
     players:    loadPlayers,
+    inventory:  loadInventory,
     reputation: loadReputation,
     characters: loadCharacters,
     factions:   loadFactions,
@@ -733,6 +734,179 @@ function statInput(player, field) {
 }
 
 // -----------------------------------------------
+// INVENTORY
+// -----------------------------------------------
+
+var inventorySelectedPlayer = null; // { username, hero_name }
+
+var INVENTORY_CATEGORIES = ['money', 'vehicle', 'drug', 'drink', 'weapon', 'misc'];
+
+var INVENTORY_ICONS = {
+  money: '💲',
+  vehicle: '🚗',
+  drug: '💊',
+  drink: '🥃',
+  weapon: '🔪',
+  misc: '📦'
+};
+
+function categoryOptions(selected) {
+  return INVENTORY_CATEGORIES.map(function(c) {
+    return '<option value="' + c + '"' + (c === selected ? ' selected' : '') + '>' + c + '</option>';
+  }).join('');
+}
+
+async function loadInventory() {
+  var content = document.getElementById('adminContent');
+  content.innerHTML = '<h1 class="section-title">Inventory</h1><div class="loading-msg">Loading players...</div>';
+
+  var result = await adminGetPlayers();
+  if (!result.success) { content.innerHTML = '<h1 class="section-title">Inventory</h1>' + errHtml(result.error); return; }
+
+  var players = result.players || [];
+
+  content.innerHTML =
+    '<h1 class="section-title">Inventory</h1>' +
+    '<p class="section-subtitle">Select a player to manage their items.</p>' +
+    '<div class="two-col">' +
+      '<div id="inv-player-list"></div>' +
+      '<div id="inv-detail-panel"><div class="empty-state">Select a player to view their inventory.</div></div>' +
+    '</div>';
+
+  // Render player list — text-only cards, no images
+  var listEl = document.getElementById('inv-player-list');
+  players.forEach(function(p) {
+    var card = document.createElement('div');
+    card.className = 'roster-card';
+    card.style.cursor = 'pointer';
+    card.innerHTML =
+      '<strong>' + escHtml(p.hero_name || p.username) + '</strong>' +
+      '<span class="text-muted" style="font-size:0.75rem;display:block;">' + escHtml(p.username) + '</span>';
+    card.onclick = function() {
+      inventorySelectedPlayer = { username: p.username, hero_name: p.hero_name || p.username };
+      renderInventoryDetail();
+    };
+    listEl.appendChild(card);
+  });
+}
+
+async function renderInventoryDetail() {
+  var panel = document.getElementById('inv-detail-panel');
+  if (!panel || !inventorySelectedPlayer) return;
+
+  panel.innerHTML = '<div class="loading-msg">Loading...</div>';
+
+  var result = await adminGetInventory(inventorySelectedPlayer.username);
+  if (!result.success) { panel.innerHTML = errHtml(result.error); return; }
+
+  var items = result.items || [];
+
+  var html =
+    '<h2 style="margin-top:0;">' + escHtml(inventorySelectedPlayer.hero_name) + '</h2>';
+
+  if (items.length === 0) {
+    html += '<div class="empty-state" style="margin-bottom:16px;">No items.</div>';
+  } else {
+    html += '<table class="data-table" style="margin-bottom:16px;"><thead><tr>' +
+      '<th>Item</th><th>Qty</th><th>Category</th><th></th>' +
+      '</tr></thead><tbody id="inv-item-rows">';
+    items.forEach(function(item) {
+      var rowId = 'inv-row-' + escAttr(item.item_name);
+      html += '<tr id="' + rowId + '">' +
+        '<td>' + escHtml(item.item_name) + '</td>' +
+        '<td><input type="number" class="stat-input" style="width:60px;" id="inv-qty-' + escAttr(item.item_name) + '" value="' + escAttr(String(item.quantity)) + '"></td>' +
+        '<td><select class="rep-select" id="inv-cat-' + escAttr(item.item_name) + '">' + categoryOptions(item.category) + '</select></td>' +
+        '<td><button class="btn-small" style="background:var(--accent-red);" id="inv-remove-' + escAttr(item.item_name) + '">Remove</button></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table>';
+  }
+
+  html +=
+    '<hr class="divider">' +
+    '<strong>Add Item</strong>' +
+    '<div class="btn-row" style="margin-top:8px;">' +
+      '<input type="text" id="inv-new-name" placeholder="Item name" style="flex:1;min-width:100px;" class="stat-input">' +
+      '<select class="rep-select" id="inv-new-cat">' + categoryOptions('misc') + '</select>' +
+      '<input type="number" id="inv-new-qty" placeholder="Qty" style="width:60px;" class="stat-input" value="1">' +
+      '<button class="btn-primary btn-small" id="inv-add-btn">+ Add</button>' +
+    '</div>' +
+    '<span class="status-msg" id="inv-status"></span>';
+
+  panel.innerHTML = html;
+
+  // Wire up qty blur + category change for each existing item
+  items.forEach(function(item) {
+    var qtyInput = document.getElementById('inv-qty-' + item.item_name);
+    var catSelect = document.getElementById('inv-cat-' + item.item_name);
+    var removeBtn = document.getElementById('inv-remove-' + item.item_name);
+
+    if (qtyInput) {
+      qtyInput.onblur = async function() {
+        var qty = parseInt(qtyInput.value) || 0;
+        var cat = catSelect ? catSelect.value : item.category;
+        var r = await adminSetInventory(inventorySelectedPlayer.username, item.item_name, qty, cat);
+        if (r.success) {
+          showStatus('inv-status', 'Saved!', true);
+          renderInventoryDetail();
+        } else {
+          showStatus('inv-status', r.error, false);
+        }
+      };
+    }
+
+    if (catSelect) {
+      catSelect.onchange = async function() {
+        var qty = qtyInput ? parseInt(qtyInput.value) || 0 : parseInt(item.quantity) || 0;
+        var r = await adminSetInventory(inventorySelectedPlayer.username, item.item_name, qty, catSelect.value);
+        if (r.success) {
+          showStatus('inv-status', 'Saved!', true);
+        } else {
+          showStatus('inv-status', r.error, false);
+        }
+      };
+    }
+
+    if (removeBtn) {
+      removeBtn.onclick = async function() {
+        var r = await adminSetInventory(inventorySelectedPlayer.username, item.item_name, 0, item.category);
+        if (r.success) {
+          renderInventoryDetail();
+        } else {
+          showStatus('inv-status', r.error, false);
+        }
+      };
+    }
+  });
+
+  // Wire up Add button
+  var addBtn = document.getElementById('inv-add-btn');
+  if (addBtn) {
+    addBtn.onclick = async function() {
+      var nameInput = document.getElementById('inv-new-name');
+      var catInput = document.getElementById('inv-new-cat');
+      var qtyInput = document.getElementById('inv-new-qty');
+
+      var name = nameInput ? nameInput.value.trim() : '';
+      var cat = catInput ? catInput.value : 'misc';
+      var qty = parseInt(qtyInput ? qtyInput.value : '1') || 1;
+
+      if (!name) { showStatus('inv-status', 'Item name is required.', false); return; }
+
+      addBtn.disabled = true;
+      var r = await adminSetInventory(inventorySelectedPlayer.username, name, qty, cat);
+      addBtn.disabled = false;
+
+      if (r.success) {
+        renderInventoryDetail();
+      } else {
+        showStatus('inv-status', r.error, false);
+      }
+    };
+  }
+}
+
+// -----------------------------------------------
 // REPUTATION
 // -----------------------------------------------
 
@@ -957,6 +1131,7 @@ function buildCharacterForm(c) {
     '<button class="btn-primary" id="saveCharBtn">' + (isNew ? 'Create Character' : 'Save Changes') + '</button>' +
     '</div>' +
     '<div id="charStatus" class="status-msg"></div>' +
+    (!isNew ? '<div id="charRelationsBlock"><div class="loading-msg" style="font-size:0.8rem;padding:8px 0;">Loading player relations...</div></div>' : '') +
     '</div>';
 }
 
@@ -988,6 +1163,152 @@ function wireCharacterForm() {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Changes';
   };
+
+  // Load player relations block for existing characters
+  var relBlock = document.getElementById('charRelationsBlock');
+  if (relBlock && editingCharacter && editingCharacter.character_name) {
+    loadRelationsBlock(editingCharacter.character_name);
+  }
+}
+
+// -----------------------------------------------
+// PLAYER RELATIONS (inside character edit form)
+// -----------------------------------------------
+
+var RELATION_OPTIONS = ['hostile', 'negative', 'neutral', 'positive', 'ally'];
+
+async function loadRelationsBlock(characterName) {
+  var block = document.getElementById('charRelationsBlock');
+  if (!block) return;
+
+  var result = await adminGetRelations(characterName);
+  if (!result.success) {
+    block.innerHTML = '<div class="form-section-title">Player Relations</div><div style="color:var(--accent-red);font-size:0.8rem;">' + escHtml(result.error) + '</div>';
+    return;
+  }
+
+  renderRelationsBlock(characterName, result.relations || [], result.players || []);
+}
+
+function renderRelationsBlock(characterName, relations, allPlayers) {
+  var block = document.getElementById('charRelationsBlock');
+  if (!block) return;
+
+  // Build option HTML for the standing dropdown
+  function buildOptions(selected) {
+    return RELATION_OPTIONS.map(function(opt) {
+      return '<option value="' + opt + '"' + (opt === selected ? ' selected' : '') + '>' + opt + '</option>';
+    }).join('');
+  }
+
+  // Build the table of existing relations
+  var rows = '';
+  relations.forEach(function(rel) {
+    rows +=
+      '<tr data-hero="' + escAttr(rel.heroName) + '">' +
+      '<td style="padding:4px 8px 4px 0;">' + escHtml(rel.heroName) + '</td>' +
+      '<td style="padding:4px 8px 4px 0;">' +
+        '<select class="rel-standing-select" style="background:#1a1a1a;color:#eee;border:1px solid #444;border-radius:4px;padding:2px 4px;font-size:0.8rem;">' +
+          buildOptions(rel.relation) +
+        '</select>' +
+      '</td>' +
+      '<td style="padding:4px 8px 4px 0;">' +
+        '<input class="rel-notes-input" type="text" value="' + escAttr(rel.dmNotes) + '" placeholder="DM notes..." style="background:#1a1a1a;color:#eee;border:1px solid #444;border-radius:4px;padding:2px 6px;font-size:0.8rem;width:160px;">' +
+      '</td>' +
+      '<td>' +
+        '<button class="rel-remove-btn btn-small" style="font-size:0.7rem;padding:2px 6px;">Remove</button>' +
+      '</td>' +
+      '</tr>';
+  });
+
+  // Player names that already have a relation set (to exclude from "add" dropdown)
+  var usedPlayers = relations.map(function(r) { return r.heroName; });
+  var availablePlayers = allPlayers.filter(function(p) { return usedPlayers.indexOf(p) === -1; });
+
+  var addRow = availablePlayers.length > 0
+    ? '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;">' +
+        '<select id="relAddPlayerSelect" style="background:#1a1a1a;color:#eee;border:1px solid #444;border-radius:4px;padding:4px 8px;font-size:0.8rem;">' +
+          '<option value="">— add player —</option>' +
+          availablePlayers.map(function(p) { return '<option value="' + escAttr(p) + '">' + escHtml(p) + '</option>'; }).join('') +
+        '</select>' +
+        '<button id="relAddBtn" class="btn-small">+ Add Relation</button>' +
+      '</div>'
+    : '';
+
+  block.innerHTML =
+    '<div class="form-section-title" style="margin-top:20px;">Player Relations</div>' +
+    (relations.length > 0
+      ? '<table style="width:100%;border-collapse:collapse;"><tbody id="relTableBody">' + rows + '</tbody></table>'
+      : '<div id="relTableBody" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;">No relations set.</div>') +
+    addRow +
+    '<div id="relStatus" class="status-msg" style="font-size:0.75rem;min-height:1.2em;margin-top:4px;"></div>';
+
+  // Wire up existing rows
+  wireRelationRows(characterName, relations, allPlayers);
+}
+
+function wireRelationRows(characterName, relations, allPlayers) {
+  var block = document.getElementById('charRelationsBlock');
+  if (!block) return;
+
+  // Standing dropdown — save on change
+  var selects = block.querySelectorAll('.rel-standing-select');
+  selects.forEach(function(sel) {
+    var row = sel.closest('tr');
+    sel.onchange = async function() {
+      var heroName = row.getAttribute('data-hero');
+      var notesInput = row.querySelector('.rel-notes-input');
+      var dmNotes = notesInput ? notesInput.value : '';
+      var result = await adminSetRelation(heroName, characterName, sel.value, dmNotes);
+      showStatus('relStatus', result.success ? 'Saved.' : result.error, result.success);
+      if (result.success) reloadRelationsBlock(characterName);
+    };
+  });
+
+  // Notes field — save on blur
+  var noteInputs = block.querySelectorAll('.rel-notes-input');
+  noteInputs.forEach(function(input) {
+    var row = input.closest('tr');
+    input.onblur = async function() {
+      var heroName = row.getAttribute('data-hero');
+      var standingSel = row.querySelector('.rel-standing-select');
+      var relation = standingSel ? standingSel.value : 'neutral';
+      var result = await adminSetRelation(heroName, characterName, relation, input.value);
+      showStatus('relStatus', result.success ? 'Saved.' : result.error, result.success);
+    };
+  });
+
+  // Remove button — clears relation, re-renders
+  var removeBtns = block.querySelectorAll('.rel-remove-btn');
+  removeBtns.forEach(function(btn) {
+    var row = btn.closest('tr');
+    btn.onclick = async function() {
+      var heroName = row.getAttribute('data-hero');
+      var result = await adminSetRelation(heroName, characterName, '', '');
+      showStatus('relStatus', result.success ? 'Relation cleared.' : result.error, result.success);
+      if (result.success) reloadRelationsBlock(characterName);
+    };
+  });
+
+  // Add relation button
+  var addBtn = document.getElementById('relAddBtn');
+  if (addBtn) {
+    addBtn.onclick = async function() {
+      var sel = document.getElementById('relAddPlayerSelect');
+      if (!sel || !sel.value) return;
+      var heroName = sel.value;
+      var result = await adminSetRelation(heroName, characterName, 'neutral', '');
+      showStatus('relStatus', result.success ? 'Added.' : result.error, result.success);
+      if (result.success) reloadRelationsBlock(characterName);
+    };
+  }
+}
+
+async function reloadRelationsBlock(characterName) {
+  var result = await adminGetRelations(characterName);
+  if (result.success) {
+    renderRelationsBlock(characterName, result.relations || [], result.players || []);
+  }
 }
 
 // -----------------------------------------------

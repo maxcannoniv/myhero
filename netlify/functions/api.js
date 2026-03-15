@@ -460,15 +460,23 @@ async function handleSendMessage(data) {
 }
 
 // Get a player's contacts list
+// Returns objects: { name, relation } — relation is blank if not set
 async function handleGetContacts(data) {
   var sheets = getSheets();
   var rows = await readTab(sheets, 'Contacts');
   var heroName = data.heroName;
 
+  var headers = rows.length > 0 ? rows[0] : [];
+  var relationCol = headers.indexOf('relation');
+
   var contacts = [];
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === heroName) {
-      contacts.push(rows[i][1]);
+      var contactName = rows[i][1] || '';
+      if (contactName) {
+        var relation = (relationCol !== -1 && rows[i][relationCol]) ? rows[i][relationCol] : '';
+        contacts.push({ name: contactName, relation: relation });
+      }
     }
   }
 
@@ -718,10 +726,14 @@ async function handleSubmitMission(data) {
 }
 
 // Get a character's public profile
+// If data.heroName is provided, also includes the player's relation to this character (if set).
 async function handleGetCharacter(data) {
   var sheets = getSheets();
-  var rows = await readTab(sheets, 'Characters');
-  var allCharacters = rowsToObjects(rows);
+  var [charRows, contactRows] = await Promise.all([
+    readTab(sheets, 'Characters'),
+    data.heroName ? readTab(sheets, 'Contacts') : Promise.resolve([]),
+  ]);
+  var allCharacters = rowsToObjects(charRows);
 
   var character = allCharacters.find(function(c) {
     return c.character_name === data.characterName && c.profile_visible === 'yes';
@@ -735,6 +747,20 @@ async function handleGetCharacter(data) {
   var safe = Object.assign({}, character);
   delete safe.type;
   delete safe.username;
+
+  // If the player's hero name was provided, look up their personal relation to this character
+  if (data.heroName && contactRows.length > 0) {
+    var contactHeaders = contactRows[0];
+    var relationCol = contactHeaders.indexOf('relation');
+    if (relationCol !== -1) {
+      for (var i = 1; i < contactRows.length; i++) {
+        if (contactRows[i][0] === data.heroName && contactRows[i][1] === data.characterName) {
+          safe.relation = contactRows[i][relationCol] || '';
+          break;
+        }
+      }
+    }
+  }
 
   return { success: true, character: safe };
 }
@@ -1377,6 +1403,125 @@ async function handleAdminUpdateReputation(data) {
   return { success: true };
 }
 
+// Get all player-NPC relations for a given character (admin only).
+// Returns all Contacts rows where contact_name matches and relation is non-blank.
+async function handleAdminGetRelations(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+  if (!data.characterName) return { success: false, error: 'Missing characterName.' };
+
+  var sheets = getSheets();
+  var [contactRows, playerRows] = await Promise.all([
+    readTab(sheets, 'Contacts'),
+    readTab(sheets, 'Players'),
+  ]);
+
+  // Get list of player hero names for the "add relation" dropdown
+  var playerHeaders = playerRows.length > 0 ? playerRows[0] : [];
+  var heroNameCol = playerHeaders.indexOf('hero_name');
+  var players = [];
+  if (heroNameCol !== -1) {
+    for (var p = 1; p < playerRows.length; p++) {
+      var hn = playerRows[p][heroNameCol] || '';
+      if (hn) players.push(hn);
+    }
+  }
+
+  if (contactRows.length < 2) return { success: true, relations: [], players: players };
+
+  var headers = contactRows[0];
+  var heroCol = headers.indexOf('hero_name');
+  var contactCol = headers.indexOf('contact_name');
+  var relationCol = headers.indexOf('relation');
+  var notesCol = headers.indexOf('dm_notes');
+
+  if (heroCol === -1 || contactCol === -1 || relationCol === -1) {
+    return { success: true, relations: [], players: players };
+  }
+
+  var relations = [];
+  for (var i = 1; i < contactRows.length; i++) {
+    if (contactRows[i][contactCol] === data.characterName && contactRows[i][relationCol]) {
+      relations.push({
+        heroName: contactRows[i][heroCol] || '',
+        relation: contactRows[i][relationCol] || '',
+        dmNotes: notesCol !== -1 ? (contactRows[i][notesCol] || '') : '',
+      });
+    }
+  }
+
+  return { success: true, relations: relations, players: players };
+}
+
+// Set (or clear) a player's relation to a character (admin only).
+// If the player-character pair doesn't exist in Contacts, a new row is appended (auto-adds contact).
+// If relation is '' (empty string), clears the relation but leaves the contact row.
+async function handleAdminSetRelation(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+  if (!data.heroName || !data.characterName) {
+    return { success: false, error: 'Missing heroName or characterName.' };
+  }
+
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Contacts');
+  if (rows.length < 1) return { success: false, error: 'Contacts tab not found.' };
+
+  var headers = rows[0];
+  var heroCol = headers.indexOf('hero_name');
+  var contactCol = headers.indexOf('contact_name');
+  var relationCol = headers.indexOf('relation');
+  var notesCol = headers.indexOf('dm_notes');
+
+  if (heroCol === -1 || contactCol === -1 || relationCol === -1) {
+    return { success: false, error: 'Contacts tab is missing relation column. Add it in row 1 first.' };
+  }
+
+  // Find existing row for this hero-character pair
+  var targetRow = -1;
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][heroCol] === data.heroName && rows[i][contactCol] === data.characterName) {
+      targetRow = i + 1; // 1-based Sheets row number
+      break;
+    }
+  }
+
+  if (targetRow === -1) {
+    // Row doesn't exist — append new row (this also adds the contact)
+    var newRow = headers.map(function(h) {
+      if (h === 'hero_name') return data.heroName;
+      if (h === 'contact_name') return data.characterName;
+      if (h === 'relation') return data.relation || '';
+      if (h === 'dm_notes') return data.dmNotes || '';
+      return '';
+    });
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Contacts!A:A',
+      valueInputOption: 'RAW',
+      requestBody: { values: [newRow] },
+    });
+  } else {
+    // Row exists — update relation and dm_notes in-place
+    var updates = [
+      {
+        range: 'Contacts!' + colNumToLetter(relationCol) + targetRow,
+        values: [[data.relation || '']],
+      },
+    ];
+    if (notesCol !== -1) {
+      updates.push({
+        range: 'Contacts!' + colNumToLetter(notesCol) + targetRow,
+        values: [[data.dmNotes || '']],
+      });
+    }
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: { valueInputOption: 'RAW', data: updates },
+    });
+  }
+
+  return { success: true };
+}
+
 // Get all characters including hidden ones (profile_visible=no).
 async function handleAdminGetAllCharacters(data) {
   if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
@@ -1721,6 +1866,106 @@ async function handleAdminSavePlace(data) {
 }
 
 // -----------------------------------------------
+// INVENTORY HANDLERS
+// -----------------------------------------------
+
+// Player-facing: get inventory items for a player (quantity > 0 only)
+async function handleGetInventory(data) {
+  if (!data.username) return { success: false, error: 'Missing username.' };
+
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Inventory');
+  var items = rowsToObjects(rows);
+
+  var result = items.filter(function(item) {
+    return item.username === data.username && parseInt(item.quantity) > 0;
+  }).map(function(item) {
+    return { item_name: item.item_name, quantity: item.quantity, category: item.category };
+  });
+
+  return { success: true, items: result };
+}
+
+// Admin-facing: get inventory items for a player (admin-gated)
+async function handleAdminGetInventory(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+  if (!data.username) return { success: false, error: 'Missing username.' };
+
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Inventory');
+  var items = rowsToObjects(rows);
+
+  var result = items.filter(function(item) {
+    return item.username === data.username && parseInt(item.quantity) > 0;
+  }).map(function(item) {
+    return { item_name: item.item_name, quantity: item.quantity, category: item.category };
+  });
+
+  return { success: true, items: result };
+}
+
+// Admin-facing: add, update, or soft-delete an inventory item
+// If quantity <= 0 and row exists: zero out the quantity (soft-delete)
+// If quantity > 0 and row exists: update quantity and category in-place
+// If quantity > 0 and row doesn't exist: append new row
+async function handleAdminSetInventory(data) {
+  if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
+  if (!data.username || !data.item_name) return { success: false, error: 'Missing username or item_name.' };
+
+  var sheets = getSheets();
+  var rows = await readTab(sheets, 'Inventory');
+
+  if (rows.length < 1) return { success: false, error: 'Inventory tab missing. Run setup-inventory.js first.' };
+
+  var headers = rows[0];
+  var usernameCol = headers.indexOf('username');
+  var itemCol = headers.indexOf('item_name');
+  var qtyCol = headers.indexOf('quantity');
+  var catCol = headers.indexOf('category');
+
+  if (usernameCol === -1 || itemCol === -1 || qtyCol === -1 || catCol === -1) {
+    return { success: false, error: 'Inventory tab is missing required columns.' };
+  }
+
+  var quantity = parseInt(data.quantity) || 0;
+  var category = data.category || 'misc';
+
+  // Find existing row
+  var targetRow = -1;
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][usernameCol] === data.username && rows[i][itemCol] === data.item_name) {
+      targetRow = i + 1; // 1-based row number for Sheets API
+      break;
+    }
+  }
+
+  if (targetRow !== -1) {
+    // Row exists — update quantity (and category) in-place
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        valueInputOption: 'RAW',
+        data: [
+          { range: 'Inventory!' + colNumToLetter(qtyCol) + targetRow, values: [[quantity]] },
+          { range: 'Inventory!' + colNumToLetter(catCol) + targetRow, values: [[category]] }
+        ]
+      }
+    });
+  } else if (quantity > 0) {
+    // Row doesn't exist — append new row
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Inventory!A:A',
+      valueInputOption: 'RAW',
+      requestBody: { values: [[data.username, data.item_name, quantity, category]] }
+    });
+  }
+  // If quantity <= 0 and row doesn't exist, nothing to do
+
+  return { success: true };
+}
+
+// -----------------------------------------------
 // MAIN HANDLER — routes requests to the right function
 // -----------------------------------------------
 
@@ -1784,6 +2029,8 @@ exports.handler = async function(event) {
     else if (action === 'adminUpdatePlayer') result = await handleAdminUpdatePlayer(data);
     else if (action === 'adminGetReputation') result = await handleAdminGetReputation(data);
     else if (action === 'adminUpdateReputation') result = await handleAdminUpdateReputation(data);
+    else if (action === 'adminGetRelations') result = await handleAdminGetRelations(data);
+    else if (action === 'adminSetRelation') result = await handleAdminSetRelation(data);
     else if (action === 'adminGetAllCharacters') result = await handleAdminGetAllCharacters(data);
     else if (action === 'adminSaveCharacter') result = await handleAdminSaveCharacter(data);
     else if (action === 'adminGetFactions') result = await handleAdminGetFactions(data);
@@ -1793,6 +2040,9 @@ exports.handler = async function(event) {
     else if (action === 'adminSavePlace') result = await handleAdminSavePlace(data);
     else if (action === 'adminSyncPlayers') result = await handleAdminSyncPlayers(data);
     else if (action === 'adminMarkNpcMessagesRead') result = await handleAdminMarkNpcMessagesRead(data);
+    else if (action === 'getInventory') result = await handleGetInventory(data);
+    else if (action === 'adminGetInventory') result = await handleAdminGetInventory(data);
+    else if (action === 'adminSetInventory') result = await handleAdminSetInventory(data);
     else result = { success: false, error: 'Unknown action: ' + action };
 
     return {

@@ -239,10 +239,8 @@
         <span class="app-titlebar-name">Inventory</span>
       </div>
       <div class="app-body">
-        <div class="placeholder-content">
-          <div class="placeholder-icon">&#127890;</div>
-          <h3>Coming Soon</h3>
-          <p>Your items, gear, and possessions. Anything you pick up or get rewarded shows up here.</p>
+        <div id="inventoryList">
+          <div class="loading"><div class="spinner"></div></div>
         </div>
       </div>
     </div>
@@ -323,6 +321,7 @@
           <p id="charPopupFaction"></p>
         </div>
         <p class="char-popup-bio" id="charPopupBio"></p>
+        <div class="char-popup-relation" id="charPopupRelation"></div>
         <div class="char-popup-actions">
           <button class="btn btn-primary char-popup-btn" id="charSendMsgBtn">Send Message</button>
           <button class="btn btn-secondary char-popup-btn" id="charAddContactBtn">Add to Contacts</button>

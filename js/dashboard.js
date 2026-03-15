@@ -31,6 +31,7 @@ const homeBtns = document.querySelectorAll('[data-home]');
 
 // Track which feeds have been loaded so we don't re-fetch every time
 var feedsLoaded = {};
+var inventoryLoaded = false;
 
 // Open an app when its icon is tapped
 appIcons.forEach(function(icon) {
@@ -56,6 +57,12 @@ appIcons.forEach(function(icon) {
       // Load inbox when Messages is opened
       if (appName === 'messages') {
         loadInbox();
+      }
+
+      // Load inventory once when Inventory app is first opened
+      if (appName === 'inventory' && !inventoryLoaded) {
+        inventoryLoaded = true;
+        loadInventory();
       }
     }
   });
@@ -435,7 +442,9 @@ document.getElementById('msgNewBtn').addEventListener('click', function() {
     contactsList.innerHTML = '';
     if (result.success && result.contacts && result.contacts.length > 0) {
       document.getElementById('noContactsMsg').style.display = 'none';
-      result.contacts.forEach(function(name) {
+      result.contacts.forEach(function(contact) {
+        // contacts are now objects: { name, relation }
+        var name = contact.name || contact; // backwards-safe if ever a plain string
         var item = document.createElement('div');
         item.className = 'msg-contact-item';
         item.textContent = name;
@@ -477,8 +486,10 @@ function openCharacterPopup(characterName) {
   document.getElementById('charPopupBio').textContent = '';
   document.getElementById('charPopupStatus').textContent = '';
   document.getElementById('charPopupAvatar').textContent = '?';
+  document.getElementById('charPopupRelation').textContent = '';
+  document.getElementById('charPopupRelation').className = 'char-popup-relation';
 
-  sheetsGetCharacter(characterName).then(function(result) {
+  sheetsGetCharacter(characterName, heroName).then(function(result) {
     if (result.success && result.character) {
       var c = result.character;
       currentPopupCharacter = c.character_name;
@@ -499,6 +510,12 @@ function openCharacterPopup(characterName) {
         avatarEl.innerHTML = '<img src="' + profileImgSrc + '" alt="' + c.character_name + '">';
       } else {
         avatarEl.textContent = c.character_name.charAt(0).toUpperCase();
+      }
+      // Show relation badge if the DM has set one for this player-character pair
+      if (c.relation) {
+        var relationEl = document.getElementById('charPopupRelation');
+        relationEl.textContent = 'Standing: ' + c.relation;
+        relationEl.className = 'char-popup-relation char-popup-relation-' + c.relation;
       }
     } else {
       document.getElementById('charPopupName').textContent = characterName;
@@ -1171,6 +1188,67 @@ function openMissionOutcome(mission) {
 document.getElementById('missionOutcomeCloseBtn').addEventListener('click', function() {
   closeMissionOverlay();
 });
+
+// -----------------------------------------------
+// INVENTORY
+// -----------------------------------------------
+
+var INVENTORY_ICONS = {
+  money: '💲',
+  vehicle: '🚗',
+  drug: '💊',
+  drink: '🥃',
+  weapon: '🔪',
+  misc: '📦'
+};
+
+async function loadInventory() {
+  var listEl = document.getElementById('inventoryList');
+  if (!listEl) return;
+
+  // Show spinner while loading
+  listEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  var result = await sheetsGetInventory(session.username);
+
+  if (!result.success) {
+    listEl.innerHTML = '<p class="inventory-empty">Could not load inventory.</p>';
+    return;
+  }
+
+  var items = result.items || [];
+  listEl.innerHTML = '';
+
+  if (items.length === 0) {
+    var empty = document.createElement('p');
+    empty.className = 'inventory-empty';
+    empty.textContent = 'Your inventory is empty.';
+    listEl.appendChild(empty);
+    return;
+  }
+
+  items.forEach(function(item) {
+    var row = document.createElement('div');
+    row.className = 'inventory-item';
+
+    var icon = document.createElement('span');
+    icon.className = 'inventory-icon';
+    icon.textContent = INVENTORY_ICONS[item.category] || INVENTORY_ICONS.misc;
+
+    var name = document.createElement('span');
+    name.className = 'inventory-name';
+    name.textContent = item.item_name;
+
+    var qty = document.createElement('span');
+    qty.className = 'inventory-qty';
+    qty.textContent = '×' + item.quantity;
+
+    row.appendChild(icon);
+    row.appendChild(name);
+    row.appendChild(qty);
+    listEl.appendChild(row);
+  });
+}
 
 // -----------------------------------------------
 // LOAD HERO DATA
