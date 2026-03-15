@@ -586,6 +586,7 @@ async function handleGetMissions(data) {
             label: m['outcome_' + bucket + '_label'] || 'Outcome',
             narrative: m['outcome_' + bucket + '_narrative'] || '',
             image: m['outcome_' + bucket + '_image'] || '',
+            quote: m['outcome_' + bucket + '_quote'] || '',
             changes: m['outcome_' + bucket + '_changes'] || ''
           };
         }
@@ -659,6 +660,16 @@ async function handleSubmitMission(data) {
   });
   if (alreadySubmitted) {
     return { success: false, error: 'Already submitted.' };
+  }
+
+  // Enforce 1-mission-per-cycle limit
+  var cycleCheck = await getCurrentCycle(sheets);
+  var currentCycleNum = String(cycleCheck.cycle);
+  var hasMissionThisCycle = existing.some(function(s) {
+    return s.username === data.username && (s.cycle_id || '').split('.')[0] === currentCycleNum;
+  });
+  if (hasMissionThisCycle) {
+    return { success: false, error: 'You can only take one mission per cycle.' };
   }
 
   // Fetch questions to get option_weight values

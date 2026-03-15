@@ -920,7 +920,7 @@ function loadMyHeroFeed() {
     if (missionsResult.success && missionsResult.missions && missionsResult.missions.length > 0) {
       var mHeader = document.createElement('div');
       mHeader.className = 'mh-section-header';
-      mHeader.textContent = 'Active Missions';
+      mHeader.textContent = 'Select Mission';
       container.appendChild(mHeader);
 
       missionsResult.missions.forEach(function(mission) {
@@ -932,7 +932,7 @@ function loadMyHeroFeed() {
     if (feedResult.success && feedResult.posts && feedResult.posts.length > 0) {
       var pHeader = document.createElement('div');
       pHeader.className = 'mh-section-header';
-      pHeader.textContent = 'Jobs & Announcements';
+      pHeader.textContent = 'Announcements';
       container.appendChild(pHeader);
 
       feedResult.posts.forEach(function(post) {
@@ -957,9 +957,6 @@ function renderMissionCard(mission) {
   card.className = 'mission-card';
 
   var html = '';
-  if (mission.image_url) {
-    html += '<img class="mission-card-image" src="' + mission.image_url + '" alt="">';
-  }
   html += '<div class="mission-card-content">';
   html += '<h3 class="mission-card-title">' + (mission.title || 'Mission') + '</h3>';
   html += '<p class="mission-card-desc">' + (mission.description || '') + '</p>';
@@ -1138,6 +1135,10 @@ function showMissionOverlay(mode) {
   document.getElementById('missionQuestionPanel').style.display = mode === 'question' ? 'flex' : 'none';
   document.getElementById('missionConfirmPanel').style.display = mode === 'confirm' ? 'flex' : 'none';
   document.getElementById('missionOutcomePanel').style.display = mode === 'outcome' ? 'flex' : 'none';
+  // Closing quote only shows on the outcome frame; hide it in all other modes
+  if (mode !== 'outcome') {
+    document.getElementById('missionClosingQuote').style.display = 'none';
+  }
 }
 
 // Close the overlay and reset all mission state
@@ -1198,6 +1199,15 @@ function openMissionOutcome(mission) {
   document.getElementById('missionOutcomeLabel').textContent = mission.outcome.label || 'Mission Resolved';
   document.getElementById('missionOutcomeNarrative').textContent = mission.outcome.narrative || '';
   document.getElementById('missionOutcomeChanges').textContent = mission.outcome.changes || '';
+
+  // Show the NPC closing quote as a comic speech bubble over the frame
+  var quoteEl = document.getElementById('missionClosingQuote');
+  if (mission.outcome.quote) {
+    quoteEl.textContent = '\u201c' + mission.outcome.quote + '\u201d';
+    quoteEl.style.display = 'block';
+  } else {
+    quoteEl.style.display = 'none';
+  }
 
   showMissionOverlay('outcome');
 }

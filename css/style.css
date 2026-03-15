@@ -2049,6 +2049,22 @@ select.form-input option {
    MISSIONS
    ============================================ */
 
+/* HUD bar — shown below the myHERO titlebar */
+.mh-hud {
+  padding: 5px 16px;
+  background: var(--bg-dark);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+}
+.mh-hud-label {
+  font-family: var(--font-comic);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
 /* Section label above each section in the myHERO feed */
 .mh-section-header {
   font-family: var(--font-comic);
@@ -2069,13 +2085,6 @@ select.form-input option {
   margin: 12px 16px;
   overflow: hidden;
   box-shadow: 3px 3px 0px var(--border-comic);
-}
-
-.mission-card-image {
-  width: 100%;
-  height: 160px;
-  object-fit: cover;
-  display: block;
 }
 
 .mission-card-content {
@@ -2121,9 +2130,11 @@ select.form-input option {
   overflow: hidden;
 }
 
-/* Image area — top 45% of the screen */
+/* Image area — 3:2 aspect ratio, full width */
 .mission-image-area {
-  flex: 0 0 45%;
+  aspect-ratio: 3 / 2;
+  width: 100%;
+  flex-shrink: 0;
   position: relative;
   background: var(--bg-card);
   overflow: hidden;
@@ -2150,6 +2161,48 @@ select.form-input option {
   text-align: center;
   min-height: 40px;
   pointer-events: none;
+}
+
+/* NPC closing quote — comic speech bubble overlaid on the outcome frame */
+.mission-closing-quote {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  color: #1a1a1a;
+  border: 3px solid #1a1a1a;
+  border-radius: 14px;
+  padding: 10px 18px;
+  font-family: var(--font-comic);
+  font-size: 0.9rem;
+  text-align: center;
+  max-width: 82%;
+  z-index: 10;
+  line-height: 1.4;
+}
+/* Bubble tail — outer (dark border) */
+.mission-closing-quote::after {
+  content: '';
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 12px solid #1a1a1a;
+}
+/* Bubble tail — inner (white fill) */
+.mission-closing-quote::before {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 10px solid #fff;
+  z-index: 1;
 }
 
 /* Shared panel styles — occupy the bottom half and scroll if needed */
