@@ -24,7 +24,8 @@ See ROADMAP.md for the full build plan and phased feature list.
 - **Mission system** — Full illusion-of-choice mission flow. DM writes missions in Sheets, players tap through questions in a full-screen overlay, outcome bucket auto-computed, DM reviews and resolves via admin portal.
   - Three Sheets tabs: Missions, MissionQuestions, MissionSubmissions
   - Mission cards in myHERO feed with 3 states: Available / Awaiting Resolution / Read Outcome. No thumbnail on cards — title + description only.
-  - Full-screen question overlay: 3:2 image frame, image swaps per option, flavor text after each choice, answer locking, auto-advance. Supports up to 5 questions.
+  - Full-screen question overlay: 3:2 image frame (anchored to top — faces/heads never cropped), NPC dialogue in a cream comic speech bubble below the image, image swaps per option, answer locking, auto-advance. Supports up to 5 questions.
+  - NPC bubble persists from question screen to confirm screen — last NPC line stays visible while player confirms submission. Hidden on outcome screen (which has its own closing-quote bubble on the image).
   - Skill-gated options: `option_skill_check` column (e.g. `agility:5`) locks an option if player skill is below the minimum.
   - Confirm screen before submit; outcome screen with narrative + NPC closing quote (comic speech bubble overlaid on the outcome frame) after DM resolves.
   - `option_weight` never sent to client — players cannot see how choices are weighted.

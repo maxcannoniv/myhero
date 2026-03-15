@@ -1051,12 +1051,7 @@ function renderCurrentQuestion() {
   var q = activeQuestions[currentQuestionIndex];
   var total = activeQuestions.length;
 
-  // Clear flavor text from the previous answer now that the next question is showing
-  document.getElementById('missionFlavor').textContent = '';
-
-  document.getElementById('missionQuestionNum').textContent =
-    'Question ' + (currentQuestionIndex + 1) + ' of ' + total;
-  document.getElementById('missionQuestionText').textContent = q.question_text;
+  document.getElementById('missionNpcBubble').textContent = q.question_text;
 
   var optionsEl = document.getElementById('missionOptions');
   optionsEl.innerHTML = '';
@@ -1094,9 +1089,8 @@ function renderCurrentQuestion() {
       // Record the answer
       playerAnswers.push(opt.option_id);
 
-      // Show flavor text and swap image if the option has them
-      var flavorEl = document.getElementById('missionFlavor');
-      flavorEl.textContent = opt.option_flavor || '';
+      // Show flavor text in NPC bubble and swap image if the option has them
+      document.getElementById('missionNpcBubble').textContent = opt.option_flavor || q.question_text;
 
       if (opt.option_image) {
         setMissionImage(opt.option_image);
@@ -1135,6 +1129,8 @@ function showMissionOverlay(mode) {
   document.getElementById('missionQuestionPanel').style.display = mode === 'question' ? 'flex' : 'none';
   document.getElementById('missionConfirmPanel').style.display = mode === 'confirm' ? 'flex' : 'none';
   document.getElementById('missionOutcomePanel').style.display = mode === 'outcome' ? 'flex' : 'none';
+  // NPC bubble shows on question + confirm screens; outcome has its own closing-quote on the image
+  document.getElementById('missionNpcBubble').style.display = mode === 'outcome' ? 'none' : 'block';
   // Closing quote only shows on the outcome frame; hide it in all other modes
   if (mode !== 'outcome') {
     document.getElementById('missionClosingQuote').style.display = 'none';
@@ -1194,7 +1190,6 @@ function openMissionOutcome(mission) {
 
   // Show outcome image if one exists, otherwise fall back to the mission image
   setMissionImage(mission.outcome.image || mission.image_url);
-  document.getElementById('missionFlavor').textContent = '';
 
   document.getElementById('missionOutcomeLabel').textContent = mission.outcome.label || 'Mission Resolved';
   document.getElementById('missionOutcomeNarrative').textContent = mission.outcome.narrative || '';

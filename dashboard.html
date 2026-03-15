@@ -364,16 +364,15 @@
     <!-- Top: large image area -->
     <div class="mission-image-area" id="missionImageArea">
       <img class="mission-current-image" id="missionCurrentImage" src="" alt="" style="display: none;">
-      <!-- Flavor text shown briefly after each choice -->
-      <div class="mission-flavor" id="missionFlavor"></div>
       <!-- Closing NPC quote shown as a comic speech bubble on the outcome frame -->
       <div class="mission-closing-quote" id="missionClosingQuote" style="display:none;"></div>
     </div>
 
+    <!-- NPC dialogue — comic speech bubble, visible on question + confirm screens -->
+    <div class="mission-npc-bubble" id="missionNpcBubble"></div>
+
     <!-- Panel 1: Question (shown while answering questions) -->
     <div class="mission-question-panel" id="missionQuestionPanel" style="display: none;">
-      <div class="mission-question-num" id="missionQuestionNum"></div>
-      <div class="mission-question-text" id="missionQuestionText"></div>
       <div class="mission-options" id="missionOptions"></div>
       <button class="mission-abandon-btn" id="missionAbandonBtn">Abandon Mission</button>
     </div>
