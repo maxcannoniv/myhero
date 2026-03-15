@@ -1069,6 +1069,24 @@ function renderCurrentQuestion() {
     btn.className = 'mission-option-btn';
     btn.textContent = opt.option_text;
 
+    // Check skill requirement if present (format: "skill_name:minimum")
+    if (opt.option_skill_check) {
+      var checkParts = opt.option_skill_check.split(':');
+      var skillName = checkParts[0];
+      var skillMin = parseInt(checkParts[1]) || 0;
+      var playerSkill = (session && session.hero) ? parseInt(session.hero[skillName]) || 0 : 0;
+      if (playerSkill < skillMin) {
+        btn.disabled = true;
+        btn.classList.add('mission-option-locked');
+        var reqLabel = document.createElement('span');
+        reqLabel.className = 'mission-skill-req';
+        // Capitalize skill name for display
+        var displaySkill = skillName.charAt(0).toUpperCase() + skillName.slice(1);
+        reqLabel.textContent = '(Requires ' + displaySkill + ' ' + skillMin + ')';
+        btn.appendChild(reqLabel);
+      }
+    }
+
     btn.addEventListener('click', function() {
       // Lock all options immediately to prevent double-tap
       optionsEl.querySelectorAll('.mission-option-btn').forEach(function(b) {

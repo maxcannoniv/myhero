@@ -2217,6 +2217,18 @@ select.form-input option {
   cursor: default;
 }
 
+.mission-option-locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mission-skill-req {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  display: block;
+  margin-top: 4px;
+}
+
 .mission-abandon-btn {
   background: none;
   border: none;

@@ -634,7 +634,8 @@ async function handleGetMissionQuestions(data) {
         option_id: q.option_id,
         option_text: q.option_text,
         option_image: q.option_image,
-        option_flavor: q.option_flavor
+        option_flavor: q.option_flavor,
+        option_skill_check: q.option_skill_check || ''
         // option_weight intentionally excluded
       };
     });
@@ -1175,6 +1176,153 @@ async function handleAdminGetMissionSubmissions(data) {
   return { success: true, submissions: submissions, missions: missions };
 }
 
+// Apply pipe-separated outcome_changes string after a mission is resolved.
+// Supported effects: bank:+/-N, contacts:add:Name, relation:Name:value,
+// inventory:Name:qty:category, reputation:faction-name:value
+async function applyMissionOutcomeChanges(sheets, username, heroName, changesStr) {
+  var effects = changesStr.split('|');
+
+  for (var i = 0; i < effects.length; i++) {
+    var effect = effects[i].trim();
+    if (!effect) continue;
+
+    var parts = effect.split(':');
+    var type = parts[0];
+
+    if (type === 'bank') {
+      var delta = parseInt(parts[1]);
+      if (isNaN(delta)) continue;
+      var playerRows = await readTab(sheets, 'Players');
+      var ph = playerRows[0];
+      var puCol = ph.indexOf('username');
+      var pbCol = ph.indexOf('bank');
+      if (puCol === -1 || pbCol === -1) continue;
+      for (var j = 1; j < playerRows.length; j++) {
+        if (playerRows[j][puCol] === username) {
+          var newBank = (parseInt(playerRows[j][pbCol]) || 0) + delta;
+          await sheets.spreadsheets.values.batchUpdate({
+            spreadsheetId: SPREADSHEET_ID,
+            requestBody: { valueInputOption: 'RAW', data: [
+              { range: 'Players!' + colNumToLetter(pbCol) + (j + 1), values: [[newBank]] }
+            ]}
+          });
+          break;
+        }
+      }
+
+    } else if (type === 'contacts' && parts[1] === 'add') {
+      var contactName = parts.slice(2).join(':');
+      var cRows = await readTab(sheets, 'Contacts');
+      var ch = cRows[0];
+      var cheroCol = ch.indexOf('hero_name');
+      var cnameCol = ch.indexOf('contact_name');
+      if (cheroCol === -1 || cnameCol === -1) continue;
+      var exists = false;
+      for (var j = 1; j < cRows.length; j++) {
+        if (cRows[j][cheroCol] === heroName && cRows[j][cnameCol] === contactName) {
+          exists = true; break;
+        }
+      }
+      if (!exists) {
+        var newRow = ch.map(function(h) {
+          if (h === 'hero_name') return heroName;
+          if (h === 'contact_name') return contactName;
+          return '';
+        });
+        await sheets.spreadsheets.values.append({
+          spreadsheetId: SPREADSHEET_ID,
+          range: 'Contacts!A:A',
+          valueInputOption: 'RAW',
+          requestBody: { values: [newRow] }
+        });
+      }
+
+    } else if (type === 'relation') {
+      var relCharName = parts[1];
+      var relValue = parts[2];
+      var rRows = await readTab(sheets, 'Contacts');
+      var rh = rRows[0];
+      var rheroCol = rh.indexOf('hero_name');
+      var rnameCol = rh.indexOf('contact_name');
+      var rrelCol = rh.indexOf('relation');
+      if (rheroCol === -1 || rnameCol === -1 || rrelCol === -1) continue;
+      var targetRelRow = -1;
+      for (var j = 1; j < rRows.length; j++) {
+        if (rRows[j][rheroCol] === heroName && rRows[j][rnameCol] === relCharName) {
+          targetRelRow = j + 1; break;
+        }
+      }
+      if (targetRelRow !== -1) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: SPREADSHEET_ID,
+          requestBody: { valueInputOption: 'RAW', data: [
+            { range: 'Contacts!' + colNumToLetter(rrelCol) + targetRelRow, values: [[relValue]] }
+          ]}
+        });
+      }
+
+    } else if (type === 'inventory') {
+      var itemName = parts[1];
+      var qty = parseInt(parts[2]) || 0;
+      var category = parts[3] || '';
+      var iRows = await readTab(sheets, 'Inventory');
+      if (iRows.length < 1) continue;
+      var ih = iRows[0];
+      var iuCol = ih.indexOf('username');
+      var iiCol = ih.indexOf('item_name');
+      var iqCol = ih.indexOf('quantity');
+      var icCol = ih.indexOf('category');
+      if (iuCol === -1 || iiCol === -1 || iqCol === -1) continue;
+      var targetInvRow = -1;
+      for (var j = 1; j < iRows.length; j++) {
+        if (iRows[j][iuCol] === username && iRows[j][iiCol] === itemName) {
+          targetInvRow = j + 1; break;
+        }
+      }
+      if (targetInvRow !== -1) {
+        var invData = [{ range: 'Inventory!' + colNumToLetter(iqCol) + targetInvRow, values: [[qty]] }];
+        if (icCol !== -1) invData.push({ range: 'Inventory!' + colNumToLetter(icCol) + targetInvRow, values: [[category]] });
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: SPREADSHEET_ID,
+          requestBody: { valueInputOption: 'RAW', data: invData }
+        });
+      } else {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId: SPREADSHEET_ID,
+          range: 'Inventory!A:A',
+          valueInputOption: 'RAW',
+          requestBody: { values: [[username, itemName, qty, category]] }
+        });
+      }
+
+    } else if (type === 'reputation') {
+      var repFaction = parts[1];
+      var repValue = parts[2];
+      var repRows = await readTab(sheets, 'Reputation');
+      if (repRows.length < 1) continue;
+      var reph = repRows[0];
+      var repheroCol = reph.indexOf('hero_name');
+      var repfactionCol = reph.indexOf('faction_name');
+      var reprepCol = reph.indexOf('reputation');
+      if (repheroCol === -1 || repfactionCol === -1 || reprepCol === -1) continue;
+      var targetRepRow = -1;
+      for (var j = 1; j < repRows.length; j++) {
+        if (repRows[j][repheroCol] === heroName && repRows[j][repfactionCol] === repFaction) {
+          targetRepRow = j + 1; break;
+        }
+      }
+      if (targetRepRow !== -1) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: SPREADSHEET_ID,
+          requestBody: { valueInputOption: 'RAW', data: [
+            { range: 'Reputation!' + colNumToLetter(reprepCol) + targetRepRow, values: [[repValue]] }
+          ]}
+        });
+      }
+    }
+  }
+}
+
 // Set dm_override and/or resolved on a mission submission. Identified by submission_id.
 async function handleAdminResolveMission(data) {
   if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
@@ -1189,18 +1337,27 @@ async function handleAdminResolveMission(data) {
   var idCol = headers.indexOf('submission_id');
   var dmOverrideCol = headers.indexOf('dm_override');
   var resolvedCol = headers.indexOf('resolved');
+  var usernameCol = headers.indexOf('username');
+  var heroNameCol = headers.indexOf('hero_name');
+  var missionIdCol = headers.indexOf('mission_id');
+  var outcomeBucketCol = headers.indexOf('outcome_bucket');
 
   if (idCol === -1) return { success: false, error: 'submission_id column not found.' };
 
   var targetRow = -1;
+  var submissionRow = null;
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][idCol] === data.submissionId) {
       targetRow = i + 1;
+      submissionRow = rows[i];
       break;
     }
   }
 
   if (targetRow === -1) return { success: false, error: 'Submission not found.' };
+
+  // Guard: don't re-apply outcome changes if already resolved
+  var alreadyResolved = resolvedCol !== -1 && submissionRow[resolvedCol] === 'yes';
 
   var updates = [];
   if (data.dmOverride !== undefined && dmOverrideCol !== -1) {
@@ -1221,6 +1378,31 @@ async function handleAdminResolveMission(data) {
       spreadsheetId: SPREADSHEET_ID,
       requestBody: { valueInputOption: 'RAW', data: updates }
     });
+  }
+
+  // Auto-apply outcome changes the first time this submission is resolved
+  if (data.resolved === 'yes' && !alreadyResolved && submissionRow) {
+    var username = usernameCol !== -1 ? submissionRow[usernameCol] : null;
+    var heroName = heroNameCol !== -1 ? submissionRow[heroNameCol] : null;
+    var missionId = missionIdCol !== -1 ? submissionRow[missionIdCol] : null;
+    // If dm_override is being set in this same call, use that; otherwise read from the row
+    var dmOverrideValue = (data.dmOverride !== undefined) ? data.dmOverride
+      : (dmOverrideCol !== -1 ? submissionRow[dmOverrideCol] : '');
+    var outcomeBucket = (dmOverrideValue && dmOverrideValue !== '')
+      ? dmOverrideValue
+      : (outcomeBucketCol !== -1 ? submissionRow[outcomeBucketCol] : null);
+
+    if (username && heroName && missionId && outcomeBucket) {
+      var missionRows = await readTab(sheets, 'Missions');
+      var allMissions = rowsToObjects(missionRows);
+      var mission = allMissions.find(function(m) { return m.mission_id === missionId; });
+      if (mission) {
+        var changesStr = mission['outcome_' + outcomeBucket + '_changes'] || '';
+        if (changesStr) {
+          await applyMissionOutcomeChanges(sheets, username, heroName, changesStr);
+        }
+      }
+    }
   }
 
   return { success: true };
