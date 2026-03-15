@@ -710,9 +710,9 @@ async function handleSubmitMission(data) {
   var cycleInfo = await getCurrentCycle(sheets);
   var cycleId = computeCycleId(cycleInfo.cycle, cycleInfo.cycleStart);
 
-  // Pad answers to 5 slots (q1–q5 columns)
-  var answers = data.answers.slice(0, 5);
-  while (answers.length < 5) answers.push('');
+  // Pad answers to 4 slots (q1–q4 columns)
+  var answers = data.answers.slice(0, 4);
+  while (answers.length < 4) answers.push('');
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,

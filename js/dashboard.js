@@ -1035,7 +1035,8 @@ function groupQuestions(rows) {
       option_id: row.option_id,
       option_text: row.option_text,
       option_image: row.option_image,
-      option_flavor: row.option_flavor
+      option_flavor: row.option_flavor,
+      option_skill_check: row.option_skill_check
     });
   });
   // Sort by the question_num value (numeric sort)
