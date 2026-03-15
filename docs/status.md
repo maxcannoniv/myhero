@@ -27,11 +27,11 @@ See ROADMAP.md for the full build plan and phased feature list.
   - Mission cards in myHERO feed with 3 states: Available / Awaiting Resolution / Read Outcome. No thumbnail on cards — title + description only.
   - Full-screen question overlay: 3:2 image frame (anchored to top — faces/heads never cropped), NPC dialogue in a cream comic speech bubble below the image, image swaps per option, answer locking, auto-advance. Supports up to 5 questions.
   - NPC bubble persists from question screen to confirm screen — last NPC line stays visible while player confirms submission. Hidden on outcome screen (which has its own closing-quote bubble on the image).
-  - Skill-gated options: `option_skill_check` column (e.g. `agility:5`) locks an option if player skill is below the minimum.
+  - Skill-gated options: `option_skill_check` column (e.g. `agility:5`) locks an option if player skill is below the minimum. Confirmed working in live playtest (2026-03-15).
   - Confirm screen before submit; outcome screen with narrative + NPC closing quote (comic speech bubble overlaid on the outcome frame) after DM resolves.
   - `option_weight` never sent to client — players cannot see how choices are weighted.
   - **1 mission per cycle** — backend enforces this; second submission attempt in the same cycle returns an error. Limit shown in the myHERO app HUD bar.
-  - **Auto-apply on resolve** — when DM clicks Resolve in admin portal, the `outcome_*_changes` string is parsed and applied automatically. Supported: `bank`, `contacts:add`, `relation`, `inventory`, `reputation`, `message` (auto-DMs an NPC message to the player). Skill stats (might, agility, etc.) still require manual Players tab edits.
+  - **Auto-apply on resolve** — when DM clicks Resolve in admin portal, the `outcome_*_changes` string is parsed and applied automatically. Supported: `bank`, `contacts:add`, `relation`, `inventory`, `reputation`, `message` (auto-DMs an NPC message to the player). Confirmed working in live playtest (2026-03-15). Skill stats (might, agility, etc.) still require manual Players tab edits.
   - **Overlay constrained to 480px max-width** — on desktop the mission overlay is centered over the terminal column (not full browser width). Image area capped at `max-height: 45vh` so the question panel is never pushed off screen on short or landscape devices.
 - **Admin portal** — DM-only interface at `/admin.html`. Login-gated (ADMIN_PASSWORD env var). 12 sections:
   - **Dashboard** — overview stats (players, unread messages, pending missions, current cycle)
