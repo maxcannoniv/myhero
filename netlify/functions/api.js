@@ -724,7 +724,7 @@ async function handleSubmitMission(data) {
         data.username,
         data.heroName,
         data.missionId,
-        answers[0], answers[1], answers[2], answers[3], answers[4],
+        answers[0], answers[1], answers[2], answers[3],
         bucket,
         '',    // dm_override — DM fills this in Sheets if needed
         'no',  // resolved — DM changes to 'yes' after review

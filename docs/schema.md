@@ -153,7 +153,7 @@ Columns: `mission_id`, `question_num`, `question_text`, `option_id`, `option_tex
 
 One row per player per mission.
 
-Columns: `submission_id`, `username`, `hero_name`, `mission_id`, `q1_answer`–`q5_answer`, `outcome_bucket` (auto-computed), `dm_override`, `resolved` (yes/no), `cycle_id`, `timestamp`
+Columns: `submission_id`, `username`, `hero_name`, `mission_id`, `q1_answer`–`q4_answer`, `outcome_bucket` (auto-computed), `dm_override`, `resolved` (yes/no), `cycle_id`, `timestamp`
 
 - `outcome_bucket` — auto-computed from option_weight votes
 - `dm_override` — DM can force a/b/c regardless of computed bucket
