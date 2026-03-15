@@ -26,7 +26,8 @@ The engine is complete. All feeds, missions, messaging, admin portal, and player
 | 2 | Write 3 starter missions | Content | Mission system works but only sample data exists |
 | 3 | Write seed feed posts (all 5 feeds) | Content | World feels empty without this — do before inviting players |
 | 4 | Send NPC welcome messages | Content | Pre-load 1 message to each player's inbox so it isn't empty on first login |
-| 5 | Inventory + Notebook apps | Code | Needed before handing out secret intel or items (Phase 2.8–2.9) |
+| 5 | ~~Inventory app~~ ✓ | Code | Done — items show in player dashboard with category icons; admin portal manages them |
+| 5b | Notebook app | Code | Still needed before handing out secret intel (Phase 2.9) |
 | 6 | Dashboard optimization | Code | Needs scoping before any code is written — identify specific things that feel off |
 | 7 | Story/mission iteration | Content + code | Emerges from actual play — hard to optimize before you have real missions |
 | 8 | Stat automations | Code | Far away — manual DM workflow is workable for now |
@@ -56,11 +57,10 @@ Files to compress (all currently 2–3.4 MB):
 
 ### What's Still Missing (Code Gaps)
 
-Beyond content, two terminal apps are placeholders with no code behind them:
-- **Inventory app** — Sheets tab exists, UI shows "Coming Soon." No backend routes. Needed before you can give players items or secret intel. (Phase 2.8, Phase 3.12)
-- **Notebook app** — Sheets tab exists, UI shows "Coming Soon." No backend routes. Notes/intel system requires this. (Phase 2.9)
+One terminal app is still a placeholder:
+- **Notebook app** — UI shows "Coming Soon." Notes/intel system (secret content loaded by ID) not built yet. (Phase 2.9)
 
-Everything else is working. These are the only two functional gaps before the game is fully launchable.
+The Inventory app is now complete. Everything else is working.
 
 ---
 
@@ -92,7 +92,7 @@ Everything else is working. These are the only two functional gaps before the ga
 - [ ] **2.5 Clout calculation** — Define formula: faction standing × faction power multiplier, summed across factions
 - [x] **2.6 Update signup flow** — New accounts get starting bank/followers/authority based on class defaults
 - [x] **2.7 Rename net_worth → bank** — Updated across all files
-- [ ] **2.8 Inventory system** — Inventory tab in Sheets, items + notes, display in Inventory app on terminal
+- [x] **2.8 Inventory system** — Inventory tab in Sheets (username, item_name, quantity, category), admin portal Inventory section, player dashboard app with category icons. Run `setup-inventory.js` to create the tab. Notes/Notebook is a separate phase (2.9).
 - [ ] **2.9 Notebook system** — NoteContent tab in Sheets, secret content loaded by content_id, popup overlay display
 - [ ] **2.10 Save-as-note from messages** — Players can save NPC messages as notes to their notebook
 
@@ -120,7 +120,8 @@ Everything else is working. These are the only two functional gaps before the ga
 - [x] **3.11 Character roster view** — Roster of all characters (player + NPC). Player cards have green "PLAYER" badge + @username and are grouped separately from NPCs. "Sync Players" button retroactively creates Characters entries for players who registered before auto-create existed.
 
 **Inventory & Notes:**
-- [ ] **3.12 Inventory/note giver** — Form: pick player, give item (name + description) or note (name + content: title, body_text, image_url). Handles both Inventory tab and NoteContent tab in one operation.
+- [x] **3.12 Inventory item giver** — Admin portal Inventory section: pick player, add/update/remove items with name, qty, category. Inline editing with auto-save.
+- [ ] **3.12b Notebook/note giver** — Form to give a player a note (secret content: title, body_text, image_url linked by content_id). Spans Inventory + NoteContent tabs — not yet built.
 
 **Utility:**
 - [ ] **3.13 Password reset** — Find a player, generate a new hash, update Players tab.
@@ -310,12 +311,14 @@ These came up in conversation and should be addressed in future sessions:
 - **Tagging other characters** — In posts and messages, works for both player and NPC characters
 - **Feed influence mechanics** — Higher aggregate scores = more impact on the game world through posts
 - **Mission content math** — 5 questions × 2 choices = up to 31 decision paths per mission; 5 questions × 3 choices = up to 243. Outcome bucket computed from majority weight across all answers — no combinatorial explosion for the DM, just 2–3 outcomes to write.
-- **Inventory system** — Inventory tab in Sheets exists (schema defined), but Inventory app on terminal shows "Coming Soon"
+- ~~**Inventory system**~~ — Done. Admin portal Inventory section + player dashboard app. Items show with category icons.
 - **Notebook system** — NoteContent tab schema defined, but not built. Secret content loaded by content_id, popup overlay display.
 - **Save-as-note from messages** — Players save NPC messages as notes to notebook
 - **Reputation visibility gating** — Using reputation level to control what info players can see about factions/characters
 - ~~**Faction banners in faction popup**~~ — Done. Set `banner_url` in Factions tab (or via admin portal Factions section) to display a banner image at the top of the faction popup.
 - **Opus architecture review** — Use Claude Opus to analyze the full current architecture (backend routes, frontend structure, Sheets schema, admin portal) and flag anything that may become painful to maintain or extend as the game grows. Good to do before building Phase 8 mechanics.
+- **api.js route splitting** — Currently all player and admin routes live in one file. Fine for now, but if the file grows significantly (past ~600–700 lines), consider splitting into `api-player.js` and `api-admin.js`. Not urgent — revisit when adding major new feature sets.
+- **Unique IDs for all entities (future refactor)** — Right now, every major entity is identified by a name string: players by `username`/`hero_name`, characters by their name, factions by `faction_name`, places by `slug`. This works fine for the first season, but it creates hidden fragility: if a player renames their hero, or a faction renames after an in-game event, every reference to that name across all Sheets tabs (Reputation rows, Messages, Feeds, Inventory) silently breaks. Feed posts and Messages have no ID at all — which means there's no way to add reactions, replies, or threading without reworking the schema. What already has proper IDs and doesn't need changing: Missions (`mission_id`), MissionSubmissions (`submission_id`), NoteContent (`content_id`). What needs IDs added: Players, Characters, Factions, Places, Feeds, Messages tabs. The migration would involve: (1) adding an `id` column to each of those tabs using auto-generated UUIDs (Node.js has `crypto.randomUUID()` built in — no library needed), (2) updating the Reputation tab to store `player_id` and `faction_id` instead of name strings, (3) updating Inventory to reference `player_id` instead of `username`, (4) updating api.js to generate IDs on creation and look up rows by ID. The `[Name]` syntax in post bodies does not need to change — it's a display rendering feature, not a database lookup. This is a meaningful refactor (2–4 sessions of backend work). Low urgency now — do it before building Phase 8 mechanics, not before launch.
 
 ---
 
