@@ -1178,7 +1178,8 @@ async function handleAdminGetMissionSubmissions(data) {
 
 // Apply pipe-separated outcome_changes string after a mission is resolved.
 // Supported effects: bank:+/-N, contacts:add:Name, relation:Name:value,
-// inventory:Name:qty:category, reputation:faction-name:value
+// inventory:Name:qty:category, reputation:faction-name:value,
+// message:From Name:message body text
 async function applyMissionOutcomeChanges(sheets, username, heroName, changesStr) {
   var effects = changesStr.split('|');
 
@@ -1319,6 +1320,31 @@ async function applyMissionOutcomeChanges(sheets, username, heroName, changesStr
           ]}
         });
       }
+
+    } else if (type === 'message') {
+      // Send an automatic DM from an NPC to the player.
+      // Effect format: message:From Name:message body text here
+      // parts[1] = sender name, parts.slice(2).join(':') = body (allows colons in body)
+      var msgFrom = parts[1];
+      var msgBody = parts.slice(2).join(':');
+      if (!msgFrom || !msgBody) continue;
+
+      var now = new Date();
+      var msgTimestamp = now.getFullYear() + '-' +
+        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0') + ' ' +
+        String(now.getHours()).padStart(2, '0') + ':' +
+        String(now.getMinutes()).padStart(2, '0');
+
+      var msgCycleInfo = await getCurrentCycle(sheets);
+      var msgCycleId = computeCycleId(msgCycleInfo.cycle, msgCycleInfo.cycleStart);
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Messages!A:A',
+        valueInputOption: 'RAW',
+        requestBody: { values: [[msgFrom, heroName, msgBody, msgTimestamp, 'no', msgCycleId]] }
+      });
     }
   }
 }
