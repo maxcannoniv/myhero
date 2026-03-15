@@ -21,6 +21,7 @@ See ROADMAP.md for the full build plan and phased feature list.
 - Asset system — organized under `assets/characters/{slug}/`, `assets/factions/{slug}/`, `assets/places/{slug}/`. Use `process-assets.js` drop folder workflow. Run `sync-assets.js` to verify.
   - Characters with assets: bloodhound, mongrel, dozer, aurora-edge, smiles (profile + cutout)
   - Places with assets: mongrels-towing-yard (background)
+  - Missions with assets: c1-the-proposal (proposal.webp — mission scene image)
 - **Mission system** — Full illusion-of-choice mission flow. DM writes missions in Sheets, players tap through questions in a full-screen overlay, outcome bucket auto-computed, DM reviews and resolves via admin portal.
   - Three Sheets tabs: Missions, MissionQuestions, MissionSubmissions
   - Mission cards in myHERO feed with 3 states: Available / Awaiting Resolution / Read Outcome. No thumbnail on cards — title + description only.
@@ -76,6 +77,7 @@ Three separate crashes were tracked down and fixed:
    - Q4 weights corrected (a=accept/Hell yes, b=negotiate/$1000 cut, c=refuse/Hell no). Q4-C gated on commerce:5.
    - Q4 option_flavors: Smiles reacts immediately after the player picks ("It's a deal! Pleasure doing business with you" / "That's too bad, I thought you had what it takes") for 1.6s before the confirm screen.
    - Outcome closing quotes set on all three buckets (shown in NPC speech bubble on the outcome screen after DM resolves).
+   - Mission image (`proposal.webp`) live in `assets/missions/c1-the-proposal/` and wired to `image_url` in Sheets — shows in overlay, question screens, and outcome screen.
    - DM needs to write additional missions.
 3. **Notebook system** — Inventory items work. Notes/intel (secret content loaded from a NoteContent tab) are not built — the Notebook terminal app still shows "Coming Soon".
 4. **Mission skill-stat auto-apply** — Most outcome effects auto-apply on resolve (`bank`, `inventory`, `reputation`, `contacts`, `relation`, `message`). Raw skill stat changes (might, agility, etc.) and aggregate scores (followers, positional_authority, clout) still require manual Players tab edits (Phase 3.7 remainder).
