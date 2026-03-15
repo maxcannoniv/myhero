@@ -1016,8 +1016,6 @@ function startMission(mission) {
 
     // Set the opening image
     setMissionImage(mission.image_url);
-    document.getElementById('missionFlavor').textContent = '';
-
     showMissionOverlay('question');
     renderCurrentQuestion();
   });
