@@ -2216,7 +2216,7 @@ select.form-input option {
   font-size: 1.05rem;
   text-align: center;
   line-height: 1.5;
-  margin: 0 16px;
+  margin: 16px 16px 0;
   flex-shrink: 0;
   position: relative;
 }
