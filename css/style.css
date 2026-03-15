@@ -2120,8 +2120,10 @@ select.form-input option {
 .mission-overlay {
   position: fixed;
   top: 0;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 100%;
+  max-width: 480px;
   height: 100%;
   background: var(--bg-dark);
   z-index: 1000;
@@ -2130,10 +2132,11 @@ select.form-input option {
   overflow: hidden;
 }
 
-/* Image area — 3:2 aspect ratio, full width */
+/* Image area — 3:2 aspect ratio, full width, capped so question panel stays visible */
 .mission-image-area {
   aspect-ratio: 3 / 2;
   width: 100%;
+  max-height: 45vh;
   flex-shrink: 0;
   position: relative;
   background: var(--bg-card);

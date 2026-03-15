@@ -30,6 +30,7 @@ See ROADMAP.md for the full build plan and phased feature list.
   - `option_weight` never sent to client — players cannot see how choices are weighted.
   - **1 mission per cycle** — backend enforces this; second submission attempt in the same cycle returns an error. Limit shown in the myHERO app HUD bar.
   - **Auto-apply on resolve** — when DM clicks Resolve in admin portal, the `outcome_*_changes` string is parsed and applied automatically. Supported: `bank`, `contacts:add`, `relation`, `inventory`, `reputation`, `message` (auto-DMs an NPC message to the player). Skill stats (might, agility, etc.) still require manual Players tab edits.
+  - **Overlay constrained to 480px max-width** — on desktop the mission overlay is centered over the terminal column (not full browser width). Image area capped at `max-height: 45vh` so the question panel is never pushed off screen on short or landscape devices.
 - **Admin portal** — DM-only interface at `/admin.html`. Login-gated (ADMIN_PASSWORD env var). 12 sections:
   - **Dashboard** — overview stats (players, unread messages, pending missions, current cycle)
   - **NPC Inbox** — send messages as any NPC to any player; view full conversation history; opening a conversation marks those player messages as read automatically
