@@ -1,4 +1,4 @@
-# myHERO — Current Status (as of 2026-03-14)
+# myHERO — Current Status (as of 2026-03-15)
 
 See ROADMAP.md for the full build plan and phased feature list.
 
@@ -23,10 +23,13 @@ See ROADMAP.md for the full build plan and phased feature list.
   - Places with assets: mongrels-towing-yard (background)
 - **Mission system** — Full illusion-of-choice mission flow. DM writes missions in Sheets, players tap through questions in a full-screen overlay, outcome bucket auto-computed, DM reviews and resolves via admin portal.
   - Three Sheets tabs: Missions, MissionQuestions, MissionSubmissions
-  - Mission cards in myHERO feed with 3 states: Available / Awaiting Resolution / Read Outcome
-  - Full-screen question overlay: image swaps, flavor text (stays visible until next question renders), answer locking, auto-advance. Supports up to 5 questions.
-  - Confirm screen before submit; outcome screen with narrative + stat change string after DM resolves
-  - `option_weight` never sent to client — players cannot see how choices are weighted
+  - Mission cards in myHERO feed with 3 states: Available / Awaiting Resolution / Read Outcome. No thumbnail on cards — title + description only.
+  - Full-screen question overlay: 3:2 image frame, image swaps per option, flavor text after each choice, answer locking, auto-advance. Supports up to 5 questions.
+  - Skill-gated options: `option_skill_check` column (e.g. `agility:5`) locks an option if player skill is below the minimum.
+  - Confirm screen before submit; outcome screen with narrative + NPC closing quote (comic speech bubble overlaid on the outcome frame) after DM resolves.
+  - `option_weight` never sent to client — players cannot see how choices are weighted.
+  - **1 mission per cycle** — backend enforces this; second submission attempt in the same cycle returns an error. Limit shown in the myHERO app HUD bar.
+  - **Auto-apply on resolve** — when DM clicks Resolve in admin portal, the `outcome_*_changes` string is parsed and applied automatically. Supported: `bank`, `contacts:add`, `relation`, `inventory`, `reputation`, `message` (auto-DMs an NPC message to the player). Skill stats (might, agility, etc.) still require manual Players tab edits.
 - **Admin portal** — DM-only interface at `/admin.html`. Login-gated (ADMIN_PASSWORD env var). 12 sections:
   - **Dashboard** — overview stats (players, unread messages, pending missions, current cycle)
   - **NPC Inbox** — send messages as any NPC to any player; view full conversation history; opening a conversation marks those player messages as read automatically
@@ -64,8 +67,8 @@ Three separate crashes were tracked down and fixed:
 ## What's NOT Built Yet
 
 1. **Feed content** — Only sample/test posts exist. DM needs to write real Streetview articles, Daily Dollar news, myHERO job listings, NPC Bliink posts, and The Times Today articles. (Use Post Composer in admin portal.)
-2. **Real missions** — Sheets structure and UI are live, but only a sample mission exists. DM needs to write real missions with questions, images, and outcome narratives.
+2. **Real missions** — Sheets structure and UI are live. The Proposal (c1-the-proposal) is the first real mission. DM needs to write additional missions with questions, images, and outcome narratives.
 3. **Notebook system** — Inventory items work. Notes/intel (secret content loaded from a NoteContent tab) are not built — the Notebook terminal app still shows "Coming Soon".
-4. **Mission stat-change auto-apply** — DM still reads the `outcome_changes` string and manually updates Players + Reputation tabs. Automation planned for Phase 3.7.
+4. **Mission skill-stat auto-apply** — Most outcome effects auto-apply on resolve (`bank`, `inventory`, `reputation`, `contacts`, `relation`, `message`). Raw skill stat changes (might, agility, etc.) and aggregate scores (followers, positional_authority, clout) still require manual Players tab edits (Phase 3.7 remainder).
 5. **Password reset** — No admin UI yet. Manual Sheets edit required (Phase 3.13).
 6. **In-portal image uploads** — Upload widget is built into admin forms but requires `IMGBB_API_KEY` env var (not set). Process-assets.js workflow still the primary way to add images (Phase 3.15).

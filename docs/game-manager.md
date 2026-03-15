@@ -47,7 +47,7 @@ Feed posts can be created in two ways:
 
 **`[Name]` syntax** — write `[Mongrel]` anywhere in `body` and it renders as a clickable character link in all feeds.
 
-**Posted By Type** auto-fills when you select a name: picking from the Characters group sets type to `character`; picking from Factions sets `faction`. You can override manually. The myHERO feed option posts to the "Jobs & Announcements" section that appears below the mission cards.
+**Posted By Type** auto-fills when you select a name: picking from the Characters group sets type to `character`; picking from Factions sets `faction`. You can override manually. The myHERO feed option posts to the "Announcements" section that appears below the mission cards.
 
 > **[DONE]** — Post Composer is in the admin portal.
 
@@ -189,24 +189,34 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
 
 **Write a new mission:**
 1. Open the `Missions` tab → add a row:
-   - `mission_id` — unique string, e.g. `m002`
-   - `title`, `description`, `image_url` — shown on the mission card
+   - `mission_id` — unique string, e.g. `c1-the-proposal`
+   - `title`, `description` — shown on the mission card (no thumbnail image on cards)
+   - `image_url` — opening image shown at the top of the mission overlay (not shown on card)
    - `visible` — `yes` to publish, `no` to hide/draft
    - `cycle_id` — use current cycle format, e.g. `1.00.00.0`
    - Outcome columns (fill at least a and b, c is optional):
      - `outcome_a_label` — short label shown at top of outcome screen (e.g. "Played It Straight")
      - `outcome_a_narrative` — the story text players read when resolved
-     - `outcome_a_image` — optional image URL for the outcome screen
-     - `outcome_a_changes` — plain text stat changes (e.g. `bank:+500, reputation:mongrels-towing:positive`). Applied manually by DM.
+     - `outcome_a_image` — image for the outcome frame (3:2 ratio recommended, under 200 KB)
+     - `outcome_a_quote` — optional NPC closing line shown as a comic speech bubble over the image (e.g. `It's a deal! Pleasure doing business with you.`)
+     - `outcome_a_changes` — pipe-separated effect string auto-applied by the backend on Resolve. Supported effects:
+       - `bank:+500` or `bank:-200` — adjust player bank balance
+       - `inventory:Item Name:qty:category` — add/set an inventory item
+       - `reputation:faction-name:positive` — set faction reputation (hostile/negative/neutral/positive/ally)
+       - `contacts:add:Character Name` — add to player's contact list
+       - `relation:Character Name:positive` — set relation value on an existing contact
+       - `message:NPC Name:message body text` — auto-sends a DM from the NPC to the player
+       - Separate multiple effects with `|`, e.g. `bank:-500|inventory:Item:1:misc|message:Smiles:Here you go.`
 2. Open the `MissionQuestions` tab → add rows (one row per answer option):
    - `mission_id` — must match the Missions tab
    - `question_num` — number the questions starting at 1. All options for the same question share the same number.
    - `question_text` — the question shown to the player
    - `option_id` — unique per option, e.g. `1a`, `1b`, `2a`, `2b`
    - `option_text` — the tappable button text the player sees
-   - `option_image` — optional. If set, swaps the background image when this option is tapped
+   - `option_image` — optional. If set, swaps the image frame when this option is tapped
    - `option_flavor` — optional. One-line text shown briefly after tapping (e.g. "You've got standards.")
    - `option_weight` — `a`, `b`, or `c`. Hidden from players. The outcome with the most votes wins.
+   - `option_skill_check` — optional gate. Format: `skill_name:minimum` (e.g. `agility:5`). Grays out and locks the option if player doesn't meet the requirement.
 
 **Review a cycle's submissions:**
 
@@ -221,11 +231,15 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
 2. `outcome_bucket` is auto-computed. `dm_override` overrides it if set.
 3. Change `resolved` from `no` to `yes` when ready for the player to see the outcome
 
-**Apply stat changes manually:**
-- Read the `outcome_a_changes` (or b/c) string from the Missions tab for the player's bucket
-- Update `Players` tab (bank, followers, skills, etc.) and `Reputation` tab as needed
+**What auto-applies on Resolve:**
 
-> **[PARTIALLY DONE]** — Missions reviewer is in the admin portal. Stat-change auto-apply is not yet built (Phase 3.7 in ROADMAP.md).
+When you click "Resolve" in the admin portal, the backend reads `outcome_*_changes` and automatically applies: bank adjustments, inventory grants, reputation changes, contact additions, contact relation updates, and NPC auto-messages. No manual step needed for these.
+
+**What still requires manual action:**
+- Raw skill stat changes (might, agility, charm, etc.) → edit in admin portal Players section
+- Aggregate scores (followers, positional_authority, clout) → edit in admin portal Players section
+
+> **[PARTIALLY DONE]** — Missions reviewer + most auto-apply is in the admin portal. Skill stat auto-apply is not yet built (Phase 3.7 remainder).
 
 ---
 
@@ -250,11 +264,11 @@ Missions live in three Sheets tabs: `Missions`, `MissionQuestions`, `MissionSubm
 | **Reputation editor** | ✓ Done | Reputation |
 | **Character creator/editor** | ✓ Done | Characters |
 | **Faction creator/editor** | ✓ Done | Factions |
-| **Mission reviewer** | ✓ Done | Missions |
+| **Mission reviewer + auto-apply** | ✓ Done (skill stats manual) | Missions |
 | **Bliink backgrounds (Places)** | ✓ Done | Places |
 | **Asset gallery (image bank)** | ✓ Done | Assets |
 | **Inventory (item giver)** | ✓ Done | Inventory |
 | **Notebook/note giver** | Not built | Phase 3.12 |
-| **Mission stat-change auto-apply** | Not built | Phase 3.7 |
+| **Mission skill-stat auto-apply** | Not built (other effects auto-apply) | Phase 3.7 |
 | **Password reset** | Not built | Phase 3.13 |
 | **In-portal image uploads (imgbb)** | Not built | Phase 3.15 |

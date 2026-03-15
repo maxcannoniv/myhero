@@ -127,9 +127,10 @@ Columns: `hero_name`, `contact_name`
 
 Mission cards shown in the myHERO feed.
 
-Columns: `mission_id`, `title`, `description`, `image_url`, `visible`, `cycle_id`, `outcome_a_label`, `outcome_a_narrative`, `outcome_a_image`, `outcome_a_changes`, `outcome_b_*`, `outcome_c_*`
+Columns: `mission_id`, `title`, `description`, `image_url`, `visible`, `cycle_id`, `outcome_a_label`, `outcome_a_narrative`, `outcome_a_image`, `outcome_a_changes`, `outcome_a_quote`, `outcome_b_*`, `outcome_c_*`
 
-- `outcome_a_changes` — plain text stat changes string (e.g. `bank:+500, reputation:mongrels-towing:positive`). Applied manually by DM after cycle resolution.
+- `outcome_a_changes` — pipe-separated effect string auto-applied by the backend when the DM clicks Resolve. Supported effects: `bank:+/-N`, `contacts:add:Name`, `relation:Name:value`, `inventory:Name:qty:category`, `reputation:faction-name:value`, `message:From Name:message body`. Separate multiple effects with `|`.
+- `outcome_a_quote` — optional NPC closing line displayed as a comic speech bubble overlaid on the outcome frame image. Leave blank for no bubble.
 - `visible` — `yes` to publish, `no` for draft
 
 ---
@@ -138,12 +139,13 @@ Columns: `mission_id`, `title`, `description`, `image_url`, `visible`, `cycle_id
 
 One row per answer option.
 
-Columns: `mission_id`, `question_num`, `question_text`, `option_id`, `option_text`, `option_image`, `option_flavor`, `option_weight` (a/b/c — hidden from players)
+Columns: `mission_id`, `question_num`, `question_text`, `option_id`, `option_text`, `option_image`, `option_flavor`, `option_weight` (a/b/c — hidden from players), `option_skill_check`
 
 - All options for the same question share the same `question_num`
 - `option_id` — unique per option, e.g. `1a`, `1b`, `2a`, `2b`
 - `option_flavor` — one-line text shown briefly after tapping (e.g. "You've got standards.")
 - `option_weight` — determines outcome bucket. Never sent to client.
+- `option_skill_check` — optional gate. Format: `skill_name:minimum` (e.g. `intelligence:8`). If set and the player's skill is below the minimum, the option is grayed out and unselectable.
 
 ---
 
