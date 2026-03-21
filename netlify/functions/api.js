@@ -586,8 +586,7 @@ async function handleGetMissions(data) {
             label: m['outcome_' + bucket + '_label'] || 'Outcome',
             narrative: m['outcome_' + bucket + '_narrative'] || '',
             image: m['outcome_' + bucket + '_image'] || '',
-            quote: m['outcome_' + bucket + '_quote'] || '',
-            changes: m['outcome_' + bucket + '_changes'] || ''
+            quote: m['outcome_' + bucket + '_quote'] || ''
           };
         }
       } else {

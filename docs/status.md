@@ -30,6 +30,7 @@ See ROADMAP.md for the full build plan and phased feature list.
   - Skill-gated options: `option_skill_check` column (e.g. `agility:5`) locks an option if player skill is below the minimum. Confirmed working in live playtest (2026-03-15).
   - Confirm screen before submit; outcome screen with narrative + NPC closing quote (comic speech bubble overlaid on the outcome frame) after DM resolves.
   - `option_weight` never sent to client — players cannot see how choices are weighted.
+  - `outcome_*_changes` pipe-string never sent to client — backend-only instruction format, stripped from `outcomeData` before the API response is returned.
   - **1 mission per cycle** — backend enforces this; second submission attempt in the same cycle returns an error. Limit shown in the myHERO app HUD bar.
   - **Auto-apply on resolve** — when DM clicks Resolve in admin portal, the `outcome_*_changes` string is parsed and applied automatically. Supported: `bank`, `contacts:add`, `relation`, `inventory`, `reputation`, `message` (auto-DMs an NPC message to the player). Confirmed working in live playtest (2026-03-15). Skill stats (might, agility, etc.) still require manual Players tab edits.
   - **Overlay constrained to 480px max-width** — on desktop the mission overlay is centered over the terminal column (not full browser width). Image area capped at `max-height: 45vh` so the question panel is never pushed off screen on short or landscape devices.

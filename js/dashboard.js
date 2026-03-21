@@ -1200,7 +1200,7 @@ function openMissionOutcome(mission) {
 
   document.getElementById('missionOutcomeLabel').textContent = mission.outcome.label || 'Mission Resolved';
   document.getElementById('missionOutcomeNarrative').textContent = mission.outcome.narrative || '';
-  document.getElementById('missionOutcomeChanges').textContent = mission.outcome.changes || '';
+
 
   // Show the NPC closing quote as a comic speech bubble over the frame
   var quoteEl = document.getElementById('missionClosingQuote');
