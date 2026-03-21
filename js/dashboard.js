@@ -1166,8 +1166,14 @@ document.getElementById('missionConfirmBtn').addEventListener('click', function(
   }).then(function(result) {
     if (result.success) {
       closeMissionOverlay();
-      // Reload myHERO to show "Awaiting Resolution" state
-      loadMyHeroFeed();
+      // Refresh hero stats (bank etc.) before reloading the feed
+      sheetsGetHeroData(session.username).then(function(heroResult) {
+        if (heroResult.success && heroResult.hero) {
+          saveSession(session.username, heroResult.hero);
+          displayHeroProfile(heroResult.hero);
+        }
+        loadMyHeroFeed();
+      });
     } else {
       document.getElementById('missionConfirmBtn').disabled = false;
       statusEl.textContent = result.error || 'Submission failed. Try again.';

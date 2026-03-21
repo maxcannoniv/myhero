@@ -727,12 +727,23 @@ async function handleSubmitMission(data) {
         answers[0], answers[1], answers[2], answers[3],
         bucket,
         '',    // dm_override — DM fills this in Sheets if needed
-        'no',  // resolved — DM changes to 'yes' after review
+        'yes', // resolved — auto-resolved at submission
         cycleId,
         timestamp
       ]]
     }
   });
+
+  // Auto-apply outcome changes at submission time
+  var missionRows = await readTab(sheets, 'Missions');
+  var allMissions = rowsToObjects(missionRows);
+  var mission = allMissions.find(function(m) { return m.mission_id === data.missionId; });
+  if (mission) {
+    var changesStr = mission['outcome_' + bucket + '_changes'] || '';
+    if (changesStr) {
+      await applyMissionOutcomeChanges(sheets, data.username, data.heroName, changesStr);
+    }
+  }
 
   return { success: true };
 }
