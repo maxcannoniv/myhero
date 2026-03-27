@@ -1,4 +1,4 @@
-# myHERO — Current Status (as of 2026-03-15)
+# myHERO — Current Status (as of 2026-03-26)
 
 See ROADMAP.md for the full build plan and phased feature list.
 
@@ -24,21 +24,21 @@ See ROADMAP.md for the full build plan and phased feature list.
   - Missions with assets: c1-the-proposal (proposal.webp — mission scene image)
 - **Mission system** — Full illusion-of-choice mission flow. DM writes missions in Sheets, players tap through questions in a full-screen overlay, outcome bucket auto-computed, DM reviews and resolves via admin portal.
   - Three Sheets tabs: Missions, MissionQuestions, MissionSubmissions
-  - Mission cards in myHERO feed with 3 states: Available / Awaiting Resolution / Read Outcome. No thumbnail on cards — title + description only.
+  - Mission cards in myHERO feed with 2 active states: Available / Read Outcome. ("Awaiting Resolution" is a third state that exists in the backend but is bypassed — outcomes are applied at submission so missions go directly to Read Outcome.) No thumbnail on cards — title + description only.
   - Full-screen question overlay: 3:2 image frame (anchored to top — faces/heads never cropped), NPC dialogue in a cream comic speech bubble below the image, image swaps per option, answer locking, auto-advance. Supports up to 5 questions.
   - NPC bubble persists from question screen to confirm screen — last NPC line stays visible while player confirms submission. Hidden on outcome screen (which has its own closing-quote bubble on the image).
   - Skill-gated options: `option_skill_check` column (e.g. `agility:5`) locks an option if player skill is below the minimum. Confirmed working in live playtest (2026-03-15).
-  - Confirm screen before submit; outcome screen with narrative + NPC closing quote (comic speech bubble overlaid on the outcome frame) after DM resolves.
+  - Confirm screen before submit; outcome screen with narrative + NPC closing quote (comic speech bubble overlaid on the outcome frame) — available immediately after submission.
   - `option_weight` never sent to client — players cannot see how choices are weighted.
-  - `outcome_*_changes` pipe-string never sent to client — backend-only instruction format, stripped from `outcomeData` before the API response is returned.
   - **1 mission per cycle** — backend enforces this; second submission attempt in the same cycle returns an error. Limit shown in the myHERO app HUD bar.
-  - **Auto-apply on resolve** — when DM clicks Resolve in admin portal, the `outcome_*_changes` string is parsed and applied automatically. Supported: `bank`, `contacts:add`, `relation`, `inventory`, `reputation`, `message` (auto-DMs an NPC message to the player). Confirmed working in live playtest (2026-03-15). Skill stats (might, agility, etc.) still require manual Players tab edits.
+  - **Auto-apply at submission** — outcomes are applied the moment the player submits. The `outcome_*_changes` string is parsed server-side immediately; the player's hero stats (bank, inventory, etc.) refresh on the client right after submission. Supported effects: `bank`, `contacts:add`, `relation`, `inventory`, `reputation`, `message` (auto-DMs an NPC message). Skill stats (might, agility, etc.) and aggregate scores still require manual Players tab edits. DM can still use dm_override in the admin Missions section to swap the outcome bucket, but re-applying changes requires a manual fix since auto-apply already ran.
+  - `outcome_*_changes` pipe-string is never sent to the client — stripped from `outcomeData` before the API response is returned. Backend instruction format only.
   - **Overlay constrained to 480px max-width** — on desktop the mission overlay is centered over the terminal column (not full browser width). Image area capped at `max-height: 45vh` so the question panel is never pushed off screen on short or landscape devices.
 - **Admin portal** — DM-only interface at `/admin.html`. Login-gated (ADMIN_PASSWORD env var). 12 sections:
   - **Dashboard** — overview stats (players, unread messages, pending missions, current cycle)
   - **NPC Inbox** — send messages as any NPC to any player; view full conversation history; opening a conversation marks those player messages as read automatically
   - **Post Composer** — write and publish feed posts with auto-filled timestamp + cycle_id; publish/unpublish toggle on existing posts; Posted By Type auto-fills (character/faction) when you pick a name; Image URL dropdown has two groups (Place Backgrounds + Character Profiles), both sorted A–Z; Cutout URL dropdown lists characters with `cutout_url`; both dropdowns have "Other (paste URL)..." fallback
-  - **Missions** — view all player submissions per mission; override outcome bucket; flip resolved = yes
+  - **Missions** — view all player submissions per mission; override outcome bucket (dm_override). Outcomes auto-apply at submission so manual re-application is not automatic if dm_override is used after the fact.
   - **Cycle** — one-click cycle advancement (increments counter + writes timestamp to Sheets)
   - **Players** — editable stat table for all players (skills + aggregates)
   - **Inventory** — give, update, or remove items per player. Left panel: player list. Right panel: item table (name, qty, category) with inline editing + Remove button, plus Add Item form at the bottom. Quantity saves on blur; category saves on change. Items with quantity ≤ 0 are hidden.
