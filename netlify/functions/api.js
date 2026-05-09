@@ -1912,33 +1912,48 @@ async function handleAdminSaveFaction(data) {
   return { success: true, isNew: isNew };
 }
 
-// Upload an image to imgbb. Receives base64 string, returns public URL.
+// Upload an image to Cloudinary. Receives base64 string, returns public URL.
 async function handleAdminUploadImage(data) {
   if (!verifyAdmin(data)) return { success: false, error: 'Unauthorized.' };
 
   if (!data.imageBase64) return { success: false, error: 'Missing imageBase64.' };
 
-  var apiKey = process.env.IMGBB_API_KEY;
-  if (!apiKey) return { success: false, error: 'IMGBB_API_KEY environment variable is not set.' };
+  var cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  var apiKey = process.env.CLOUDINARY_API_KEY;
+  var apiSecret = process.env.CLOUDINARY_API_SECRET;
+  if (!cloudName || !apiKey || !apiSecret) return { success: false, error: 'Cloudinary environment variables are not set.' };
+
+  // Build a signed upload request
+  var timestamp = Math.floor(Date.now() / 1000);
+  var publicId = data.imageName ? data.imageName.replace(/\.[^.]+$/, '').replace(/\s+/g, '-').toLowerCase() : ('upload-' + timestamp);
+  var folder = 'myhero';
+
+  // Generate SHA-1 signature: sign "folder=X&public_id=Y&timestamp=Z" + apiSecret
+  var crypto = require('crypto');
+  var sigString = 'folder=' + folder + '&public_id=' + publicId + '&timestamp=' + timestamp + apiSecret;
+  var signature = crypto.createHash('sha1').update(sigString).digest('hex');
 
   var params = new URLSearchParams();
-  params.append('key', apiKey);
-  params.append('image', data.imageBase64);
-  if (data.imageName) params.append('name', data.imageName.replace(/\.[^.]+$/, '')); // strip extension
+  params.append('file', 'data:image/png;base64,' + data.imageBase64);
+  params.append('api_key', apiKey);
+  params.append('timestamp', timestamp);
+  params.append('signature', signature);
+  params.append('folder', folder);
+  params.append('public_id', publicId);
 
-  var response = await fetch('https://api.imgbb.com/1/upload', {
+  var response = await fetch('https://api.cloudinary.com/v1_1/' + cloudName + '/image/upload', {
     method: 'POST',
     body: params
   });
 
   var result = await response.json();
 
-  if (result.success && result.data && result.data.url) {
-    return { success: true, url: result.data.url };
+  if (result.secure_url) {
+    return { success: true, url: result.secure_url };
   }
 
   var errMsg = (result.error && result.error.message) ? result.error.message : 'Upload failed';
-  return { success: false, error: 'imgbb: ' + errMsg };
+  return { success: false, error: 'Cloudinary: ' + errMsg };
 }
 
 // Get all places from the Places tab.
